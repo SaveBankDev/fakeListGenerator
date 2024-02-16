@@ -273,7 +273,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 const localStorageSettings = getLocalStorage();
                 localStorageSettings['selection-menu'] = selectedValue;
                 saveLocalStorage(localStorageSettings);
-                if (DEBUG) console.debug(`${scriptInfo}: selection-menu changed to ${selectedValue}`)
+                if (DEBUG) console.debug(`${scriptInfo}: selection-menu changed to ${selectedValue}`);
             });
             $('#calculate-player-list').on('click', function () {
                 calculatePlayerList();
@@ -298,19 +298,23 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         }
 
         function calculateFakelist() {
+            if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the Fakelist`);
 
         }
 
         function calculateFrontline() {
+            if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the Frontline`);
 
         }
 
 
         function calculatePlayerList() {
+            if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the PlayerList`);
 
         }
 
         function calculateVillageList() {
+            if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the VillageList`);
 
         }
 
