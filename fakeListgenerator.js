@@ -275,11 +275,43 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 saveLocalStorage(localStorageSettings);
                 if (DEBUG) console.debug(`${scriptInfo}: selection-menu changed to ${selectedValue}`)
             });
+            $('#calculate-player-list').on('click', function () {
+                calculatePlayerList();
+            });
+
+            $('#calculate-village-list').on('click', function () {
+                calculateVillageList();
+            });
+
+            $('#calculate-fakelist').on('click', function () {
+                calculateFakelist();
+            });
+
+            $('#calculate-frontline').on('click', function () {
+                calculateFrontline();
+            });
             $(document).ready(function () {
                 allIds.forEach(function (id) {
                     $('#' + id).on('change', handleInputChange);
                 });
             });
+        }
+
+        function calculateFakelist() {
+
+        }
+
+        function calculateFrontline() {
+
+        }
+
+
+        function calculatePlayerList() {
+
+        }
+
+        function calculateVillageList() {
+
         }
 
         function renderDropdownMenu() {
