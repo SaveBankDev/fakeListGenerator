@@ -71,7 +71,24 @@ const allIds = [
     "f-ally-village-radius",
     "f-number-ally-villages-radius",
 ];
-// Globals
+const DEFAULT_MIN_VILLAGE_POINTS = 0;
+const DEFAULT_MAX_VILLAGE_POINTS = 99999;
+const DEFAULT_MIN_PLAYER_POINTS = 0;
+const DEFAULT_MAX_PLAYER_POINTS = 99999999;
+const DEFAULT_SEPARATOR = ",";
+const DEFAULT_MIN_DISTANCE = 0;
+const DEFAULT_MAX_DISTANCE = 9999;
+const DEFAULT_FAKES_PER_PLAYER = 0;
+const DEFAULT_MIN_X = 0;
+const DEFAULT_MAX_X = 999;
+const DEFAULT_MIN_Y = 0;
+const DEFAULT_MAX_Y = 999;
+const DEFAULT_MIN_VILLAGES = 0;
+const DEFAULT_MAX_VILLAGES = 99999;
+const DEFAULT_RADIUS = 10;
+const DEFAULT_NUMBER_IN_RADIUS = 12;
+
+
 
 var scriptConfig = {
     scriptData: {
@@ -213,7 +230,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         const { tribes, players, villages, worldUnitInfo, worldConfig } = await fetchWorldConfigData();
         const endTime = performance.now();
         if (DEBUG) console.debug(`Startup time: ${(endTime - startTime).toFixed(4)} milliseconds`);
-
+        if (DEBUG) console.debug(tribes);
+        if (DEBUG) console.debug(players);
+        if (DEBUG) console.debug(villages);
         // Entry point
         (async function () {
             try {
@@ -311,6 +330,43 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         function calculatePlayerList() {
             if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the PlayerList`);
 
+            const localStorageSettings = getLocalStorage();
+            let tribeInput = localStorageSettings["pl-tribes-Tribes"].split(",");
+            let playerInput = localStorageSettings["pl-players-Players"].split(",");
+            let playersToExclude = localStorageSettings["pl-excluded-players-Players"].split(",");
+            let minPoints = parseInt(localStorageSettings["pl-min-points"]);
+            let maxPoints = parseInt(localStorageSettings["pl-max-points"]);
+            let minVillages = parseInt(localStorageSettings["pl-min-villages"]);
+            let maxVillages = parseInt(localStorageSettings["pl-max-villages"]);
+            let separator = localStorageSettings["pl-separator"];
+            let playerNames = [];
+            let additionalPlayerNames = [];
+
+            tribeInput.forEach(tribeName => {
+                let tribeId = tribes.find(tribe => tribe[2] === tribeName)[0];
+                players.forEach(player => {
+                    if (player[2] === tribeId && !playersToExclude.includes(player[1]) &&
+                        player[3] >= minVillages && player[3] <= maxVillages &&
+                        player[4] >= minPoints && player[4] <= maxPoints) {
+                        playerNames.push(player[1]);
+                    }
+                });
+            });
+
+            playerInput.forEach(inputName => {
+                let playerExists = players.find(player => player[1] === inputName &&
+                    player[3] >= minVillages && player[3] <= maxVillages &&
+                    player[4] >= minPoints && player[4] <= maxPoints);
+                if (playerExists && !playersToExclude.includes(inputName)) {
+                    additionalPlayerNames.push(inputName);
+                }
+            });
+
+            let finalPlayerNames = [...new Set([...playerNames, ...additionalPlayerNames])];
+
+            let playerNamesString = finalPlayerNames.join(separator);
+            $('#pl-player-list-display').val(playerNamesString);
+            $(`#player-list-result`).show();
         }
 
         function calculateVillageList() {
@@ -971,31 +1027,39 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     inputValue = $(this).val();
                     break;
                 case "pl-min-points":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_PLAYER_POINTS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MIN_PLAYER_POINTS);
+                        inputValue = DEFAULT_MIN_PLAYER_POINTS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "pl-max-points":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MAX_PLAYER_POINTS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MAX_PLAYER_POINTS);
+                        inputValue = DEFAULT_MAX_PLAYER_POINTS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "pl-min-villages":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_VILLAGES : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MIN_VILLAGES);
+                        inputValue = DEFAULT_MIN_VILLAGES;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "pl-max-villages":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MAX_VILLAGES : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MAX_VILLAGES);
+                        inputValue = DEFAULT_MAX_VILLAGES;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "pl-separator":
@@ -1008,45 +1072,57 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     inputValue = $(this).val();
                     break;
                 case "vl-min-x-coordinate":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_X : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MIN_X);
+                        inputValue = DEFAULT_MIN_X;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "vl-max-x-coordinate":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MAX_X : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MAX_X);
+                        inputValue = DEFAULT_MAX_X;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "vl-min-y-coordinate":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_Y : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MIN_Y);
+                        inputValue = DEFAULT_MIN_Y;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "vl-max-y-coordinate":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MAX_Y : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MAX_Y);
+                        inputValue = DEFAULT_MAX_Y;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "vl-min-points":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_VILLAGE_POINTS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MIN_VILLAGE_POINTS);
+                        inputValue = DEFAULT_MIN_VILLAGE_POINTS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "vl-max-points":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MAX_VILLAGE_POINTS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MAX_VILLAGE_POINTS);
+                        inputValue = DEFAULT_MAX_VILLAGE_POINTS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "vl-image":
@@ -1068,38 +1144,48 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     inputValue = $(this).val();
                     break;
                 case "fl-min-distance":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_DISTANCE : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MIN_DISTANCE);
+                        inputValue = DEFAULT_MIN_DISTANCE;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "fl-max-distance":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MAX_DISTANCE : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MAX_DISTANCE);
+                        inputValue = DEFAULT_MAX_DISTANCE;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "fl-min-points":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_VILLAGE_POINTS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MIN_VILLAGE_POINTS);
+                        inputValue = DEFAULT_MIN_VILLAGE_POINTS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "fl-max-points":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MAX_VILLAGE_POINTS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MAX_VILLAGE_POINTS);
+                        inputValue = DEFAULT_MAX_VILLAGE_POINTS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "fl-fakes-per-player":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_FAKES_PER_PLAYER : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_FAKES_PER_PLAYER);
+                        inputValue = DEFAULT_FAKES_PER_PLAYER;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "fl-filter-villages":
@@ -1123,17 +1209,21 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     inputValue = $(this).prop("checked");
                     break;
                 case "fl-ally-village-radius":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_RADIUS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_RADIUS);
+                        inputValue = DEFAULT_RADIUS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "fl-number-ally-villages-radius":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_NUMBER_IN_RADIUS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_NUMBER_IN_RADIUS);
+                        inputValue = DEFAULT_NUMBER_IN_RADIUS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "f-ally-players-Players":
@@ -1149,31 +1239,39 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     inputValue = $(this).val();
                     break;
                 case "f-min-distance":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_DISTANCE : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MIN_DISTANCE);
+                        inputValue = DEFAULT_MIN_DISTANCE;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "f-max-distance":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MAX_DISTANCE : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MAX_DISTANCE);
+                        inputValue = DEFAULT_MAX_DISTANCE;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "f-min-points":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_VILLAGE_POINTS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MIN_VILLAGE_POINTS);
+                        inputValue = DEFAULT_MIN_VILLAGE_POINTS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "f-max-points":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MAX_VILLAGE_POINTS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MAX_VILLAGE_POINTS);
+                        inputValue = DEFAULT_MAX_VILLAGE_POINTS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "f-filter-villages":
@@ -1191,17 +1289,21 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     inputValue = $(this).prop("checked");
                     break;
                 case "f-ally-village-radius":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_RADIUS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_RADIUS);
+                        inputValue = DEFAULT_RADIUS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 case "f-number-ally-villages-radius":
-                    inputValue = $(this).val();
-                    if (parseInt(inputValue) < 0) {
-                        $(this).val(0);
-                        inputValue = 0;
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_NUMBER_IN_RADIUS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_NUMBER_IN_RADIUS);
+                        inputValue = DEFAULT_NUMBER_IN_RADIUS;
+                    } else {
+                        $(this).val(inputValue)
                     }
                     break;
                 default:
@@ -1227,21 +1329,21 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     "pl-players-Players": "",
                     "pl-tribes-Tribes": "",
                     "pl-excluded-players-Players": "",
-                    "pl-min-points": 0,
-                    "pl-max-points": 99999999,
-                    "pl-min-villages": 0,
-                    "pl-max-villages": 99999,
-                    "pl-separator": ",",
+                    "pl-min-points": DEFAULT_MIN_PLAYER_POINTS,
+                    "pl-max-points": DEFAULT_MAX_PLAYER_POINTS,
+                    "pl-min-villages": DEFAULT_MIN_VILLAGES,
+                    "pl-max-villages": DEFAULT_MAX_VILLAGES,
+                    "pl-separator": DEFAULT_SEPARATOR,
 
                     // Village List
                     "vl-players-Players": "",
                     "vl-tribes-Tribes": "",
-                    "vl-min-x-coordinate": 0,
-                    "vl-max-x-coordinate": 999,
-                    "vl-min-y-coordinate": 0,
-                    "vl-max-y-coordinate": 999,
-                    "vl-min-points": 0,
-                    "vl-max-points": 99999,
+                    "vl-min-x-coordinate": DEFAULT_MIN_X,
+                    "vl-max-x-coordinate": DEFAULT_MAX_X,
+                    "vl-min-y-coordinate": DEFAULT_MIN_Y,
+                    "vl-max-y-coordinate": DEFAULT_MAX_Y,
+                    "vl-min-points": DEFAULT_MIN_VILLAGE_POINTS,
+                    "vl-max-points": DEFAULT_MAX_VILLAGE_POINTS,
                     "vl-image": false,
                     "vl-raw-coordinates": false,
 
@@ -1250,33 +1352,33 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     "fl-ally-tribes-Tribes": "",
                     "fl-enemy-players-Players": "",
                     "fl-enemy-tribes-Tribes": "",
-                    "fl-min-distance": 0,
-                    "fl-max-distance": 9999,
-                    "fl-min-points": 0,
-                    "fl-max-points": 99999,
-                    "fl-fakes-per-player": 0,
+                    "fl-min-distance": DEFAULT_MIN_DISTANCE,
+                    "fl-max-distance": DEFAULT_MAX_DISTANCE,
+                    "fl-min-points": DEFAULT_MIN_VILLAGE_POINTS,
+                    "fl-max-points": DEFAULT_MAX_VILLAGE_POINTS,
+                    "fl-fakes-per-player": DEFAULT_FAKES_PER_PLAYER,
                     "fl-filter-villages": false,
                     "fl-image": false,
                     "fl-display-targets": false,
                     "fl-raw-coordinates": false,
                     "fl-with-counts": false,
-                    "fl-ally-village-radius": 10,
-                    "fl-number-ally-villages-radius": 12,
+                    "fl-ally-village-radius": DEFAULT_RADIUS,
+                    "fl-number-ally-villages-radius": DEFAULT_NUMBER_IN_RADIUS,
 
                     // Frontline
                     "f-ally-players-Players": "",
                     "f-ally-tribes-Tribes": "",
                     "f-enemy-players-Players": "",
                     "f-enemy-tribes-Tribes": "",
-                    "f-min-distance": 0,
-                    "f-max-distance": 99999,
-                    "f-min-points": 0,
-                    "f-max-points": 99999,
+                    "f-min-distance": DEFAULT_MIN_DISTANCE,
+                    "f-max-distance": DEFAULT_MAX_DISTANCE,
+                    "f-min-points": DEFAULT_MIN_VILLAGE_POINTS,
+                    "f-max-points": DEFAULT_MAX_VILLAGE_POINTS,
                     "f-filter-villages": false,
                     "f-image": false,
                     "f-raw-coordinates": false,
-                    "f-ally-village-radius": 10,
-                    "f-number-ally-villages-radius": 12,
+                    "f-ally-village-radius": DEFAULT_RADIUS,
+                    "f-number-ally-villages-radius": DEFAULT_NUMBER_IN_RADIUS,
                 };
 
                 saveLocalStorage(defaultSettings);
