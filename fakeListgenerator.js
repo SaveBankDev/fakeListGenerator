@@ -75,6 +75,7 @@ var scriptConfig = {
             'Max Villages': 'Max Villages',
             'Frontline Coordinates:': 'Frontline Coordinates:',
             'Calculate Frontline': 'Calculate Frontline',
+            'Exclude Players (Separate with \',\')': 'Exclude Players<br>(Separate with \',\')',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
@@ -122,7 +123,8 @@ var scriptConfig = {
             'Min Villages': 'Min Dörfer',
             'Max Villages': 'Max Dörfer',
             'Frontline Coordinates:': 'Frontline Koordinaten:',
-            'Calculate Frontline': 'Frontline berechnen'
+            'Calculate Frontline': 'Frontline berechnen',
+            'Exclude Players (Separate with \',\')': 'Ohne Spieler<br>(Separate with \',\')'
         }
     }
     ,
@@ -784,7 +786,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
             return dataUrl;
         }
-
+        // Replace if its added to twSDK
         function buildDropDown(array, entity, prefixId = 'ra') {
             let sortedArray;
             if (entity === 'Tribes') {
