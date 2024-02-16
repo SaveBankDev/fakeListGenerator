@@ -169,6 +169,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             const fakelistContent = renderFakelist();
             const villageListContent = renderVillageList();
             const playerListContent = renderPlayerList();
+            const frontlineContent = renderFrontline();
             let content = `
             <div id="menu">
                 ${menuContent}
@@ -181,6 +182,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             </div>
             <div id="playerlist">
                 ${playerListContent}
+            </div>
+            <div>
+                ${frontlineContent}
             </div>
             `
             twSDK.renderBoxWidget(
@@ -272,7 +276,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             const dropdownAllyPlayer = buildDropDown(players, "Players", "vl-players");
             const dropdownAllyTribe = buildDropDown(tribes, "Tribes", "vl-tribes");
             const copyButtonVillageList = generateCopyButton("vl-coordinates-display");
-
+            // REMOVE IN LIVE
             const allyCoordinates = generateRandomCluster(300, 400, 700, 250);
             const enemyCoordinates = [];
             const hightlightedVillagesCoordinates = [];
@@ -353,6 +357,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         }
 
         function renderFakelist() {
+            // REMOVE IN LIVE
             const allyCoordinates = generateRandomCluster(300, 400, 200, 100);
             const enemyCoordinates = generateRandomCluster(400, 500, 300, 50);
             const hightlightedVillagesCoordinates = generateRandomCluster(450, 540, 40, 20);
@@ -474,7 +479,8 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             return html;
         }
 
-        function renderFakelist() {
+        function renderFrontline() {
+            // REMOVE IN LIVE
             const allyCoordinates = generateRandomCluster(300, 400, 200, 100);
             const enemyCoordinates = generateRandomCluster(400, 500, 300, 50);
             const hightlightedVillagesCoordinates = generateRandomCluster(450, 540, 40, 20);
