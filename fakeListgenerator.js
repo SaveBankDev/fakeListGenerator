@@ -342,7 +342,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 <textarea readonly id="vl-coordinates-display" class="result-text"></textarea>
                 ${copyButtonVillageList}
             </fieldset>
-            <fieldset id="image-div">
+            <fieldset id="vl-image-div">
                 <legend>${twSDK.tt('Image:')}</legend>
                 <img id="vl-image-display" src="${imageDataUrl}" alt="Image"/>
             </fieldset>
@@ -413,8 +413,8 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     <legend>${twSDK.tt('Additional Options')}</legend>
                     <div class ="sb-grid sb-grid-5 ra-mb10">
                         <div>
-                            <label for="filter-villages">${twSDK.tt('Filter Deep Villages?')}</label>
-                            <input type="checkbox" id="filter-villages" />
+                            <label for="fl-filter-villages">${twSDK.tt('Filter Deep Villages?')}</label>
+                            <input type="checkbox" id="fl-filter-villages" />
                         </div>
                         <div>
                             <label for="fl-image">${twSDK.tt('Image?')}</label>
@@ -433,17 +433,17 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                             <input type="checkbox" id="with-counts" />
                         </div>
                     </div>
-                    <div class="sb-grid sb-grid-3 ra-mb10" id="filter-village-options">
+                    <div class="sb-grid sb-grid-3 ra-mb10 filter-village-options">
                         <div class="info-text">
                             ${twSDK.tt('Filter allied villages if not enough other allied villages are nearby:')}
                         </div>
                         <fieldset>
                             <legend>${twSDK.tt('Radius')}</legend>
-                            <input type="number" id="ally-village-radius" value="10" />
+                            <input type="number" id="fl-ally-village-radius" value="10" />
                         </fieldset>
                         <fieldset>
                             <legend>${twSDK.tt('Number of Ally Villages in Radius')}</legend>
-                            <input type="number" id="number-ally-villages-radius" value="12" />
+                            <input type="number" id="fl-number-ally-villages-radius" value="12" />
                         </fieldset>
                     </div>
                 </fieldset>
@@ -464,9 +464,113 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     <textarea readonly id="fl-target-coordinates-display" class="result-text"></textarea>
                     ${copyButtonTargetCoordinates}
                 </fieldset>
-                <fieldset id="image-div">
+                <fieldset id="fl-image-div">
                     <legend>${twSDK.tt('Image:')}</legend>
                     <img id="fl-image-display" src="${imageDataUrl}" alt="Image"/>
+                </fieldset>
+            </div>
+        `
+
+            return html;
+        }
+
+        function renderFakelist() {
+            const allyCoordinates = generateRandomCluster(300, 400, 200, 100);
+            const enemyCoordinates = generateRandomCluster(400, 500, 300, 50);
+            const hightlightedVillagesCoordinates = generateRandomCluster(450, 540, 40, 20);
+
+            const imageDataUrl = createImage(allyCoordinates, enemyCoordinates, hightlightedVillagesCoordinates);
+
+            const dropdownAllyPlayer = buildDropDown(players, "Players", "f-ally-players");
+            const dropdownAllyTribe = buildDropDown(tribes, "Tribes", "f-ally-tribes");
+            const dropdownEnemyPlayer = buildDropDown(players, "Players", "f-enemy-players");
+            const dropdownEnemyTribe = buildDropDown(tribes, "Tribes", "f-enemy-tribes");
+            const copyButtonFrontline = generateCopyButton("f-frontline-display");
+            // Start building the HTML string
+            let html =
+                `
+            <div class="sb-grid sb-grid-4 ra-mb10">
+                <fieldset>
+                    <legend>${twSDK.tt('Allied Players (Separate with \',\')')}</legend>
+                    ${dropdownAllyPlayer}
+                </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Allied Tribes (Separate with \',\')')}</legend>
+                    ${dropdownAllyTribe}
+                </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Enemy Players (Separate with \',\')')}</legend>
+                    ${dropdownEnemyPlayer}
+                </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Enemy Tribes (Separate with \',\')')}</legend>
+                    ${dropdownEnemyTribe}
+                </fieldset>
+            </div>
+            <div class="sb-grid sb-grid-4 ra-mb10">
+                <fieldset>
+                    <legend>${twSDK.tt('Min Distance')}</legend>
+                    <input type="number" id="f-min-distance" value="0"/>
+                </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Max Distance')}</legend>
+                    <input type="number" id="f-max-distance" value="99999"/>
+                </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Min Points')}</legend>
+                    <input type="number" id="f-min-points" value="0"/>
+                </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Max Points')}</legend>
+                    <input type="number" id="f-max-points" value="99999"/>
+                </fieldset>
+            </div>
+            <div class="ra-mb10">
+                <fieldset>
+                    <legend>${twSDK.tt('Additional Options')}</legend>
+                    <div class ="sb-grid sb-grid-3 ra-mb10">
+                        <div>
+                            <label for="f-filter-villages">${twSDK.tt('Filter Deep Villages?')}</label>
+                            <input type="checkbox" id="f-filter-villages" />
+                        </div>
+                        <div>
+                            <label for="f-image">${twSDK.tt('Image?')}</label>
+                            <input type="checkbox" id="f-image"/>
+                        </div>
+                        <div>
+                            <label for="f-raw-coordinates">${twSDK.tt('Raw Coordinates?')}</label>
+                            <input type="checkbox" id="f-raw-coordinates" />
+                        </div>
+                    </div>
+                    <div class="sb-grid sb-grid-3 ra-mb10 filter-village-options">
+                        <div class="info-text">
+                            ${twSDK.tt('Filter allied villages if not enough other allied villages are nearby:')}
+                        </div>
+                        <fieldset>
+                            <legend>${twSDK.tt('Radius')}</legend>
+                            <input type="number" id="f-ally-village-radius" value="10" />
+                        </fieldset>
+                        <fieldset>
+                            <legend>${twSDK.tt('Number of Ally Villages in Radius')}</legend>
+                            <input type="number" id="f-number-ally-villages-radius" value="12" />
+                        </fieldset>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="ra-mb10">
+                <a href="javascript:void(0);" id="calculate-frontline" class="btn btn-confirm-yes onclick="">
+                    ${twSDK.tt('Calculate Frontline')}
+                </a>
+            </div>
+            <div id="frontline-result">
+                <fieldset>
+                    <legend>${twSDK.tt('Frontline Coordinates:')}</legend>
+                    <textarea readonly id="f-frontline-display" class="result-text"></textarea>
+                    ${copyButtonFrontline}
+                </fieldset>
+                <fieldset id="f-image-div">
+                    <legend>${twSDK.tt('Image:')}</legend>
+                    <img id="f-image-display" src="${imageDataUrl}" alt="Image"/>
                 </fieldset>
             </div>
         `
@@ -575,7 +679,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                         font-size: 12px; 
                         font-weight: bold;
                     }
-                    #filter-village-options {
+                    .filter-village-options {
                         border: 1px solid #c1a264;
                         border-radius: 4px;
                         padding: 5px;
