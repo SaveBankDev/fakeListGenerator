@@ -73,6 +73,8 @@ var scriptConfig = {
             'Players:': 'Players:',
             'Min Villages': 'Min Villages',
             'Max Villages': 'Max Villages',
+            'Frontline Coordinates:': 'Frontline Coordinates:',
+            'Calculate Frontline': 'Calculate Frontline',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
@@ -119,6 +121,8 @@ var scriptConfig = {
             'Players:': 'Players:',
             'Min Villages': 'Min Dörfer',
             'Max Villages': 'Max Dörfer',
+            'Frontline Coordinates:': 'Frontline Koordinaten:',
+            'Calculate Frontline': 'Frontline berechnen'
         }
     }
     ,
@@ -150,7 +154,6 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             return;
         }
         const { tribes, players, villages, worldUnitInfo, worldConfig } = await fetchWorldConfigData();
-        console.log(villages);
 
         // Entry point
         (async function () {
@@ -164,6 +167,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         })();
 
         function renderUI() {
+            const startTime = performance.now();
             const style = generateCSS();
             const menuContent = renderDropdownMenu();
             const fakelistContent = renderFakelist();
@@ -193,6 +197,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 'coord-list-generator',
                 style
             );
+
+            const endTime = performance.now();
+            console.log(`Time to render: ${endTime - startTime} milliseconds`);
         }
 
         function addEventHandlers() {
