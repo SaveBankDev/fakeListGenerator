@@ -1,5 +1,5 @@
 /*
-* Script Name: Coord List Generator
+* Script Name: Fakelist Generator
 * Version: v1.0
 * Last Updated: 2024-02-15
 * Author: SaveBank
@@ -15,13 +15,68 @@
 if (typeof DEBUG !== 'boolean') DEBUG = false;
 
 // CONSTANTS
+const allIds = [
+    // Player List
+    "pl-players-Players",
+    "pl-tribes-Tribes",
+    "pl-excluded-players-Players",
+    "pl-min-points",
+    "pl-max-points",
+    "pl-min-villages",
+    "pl-max-villages",
+    "pl-separator",
 
+    // Village List
+    "vl-players-Players",
+    "vl-tribes-Tribes",
+    "vl-min-x-coordinate",
+    "vl-max-x-coordinate",
+    "vl-min-y-coordinate",
+    "vl-max-y-coordinate",
+    "vl-min-points",
+    "vl-max-points",
+    "vl-image",
+    "vl-raw-coordinates",
+
+    // Fakelist
+    "fl-ally-players-Players",
+    "fl-ally-tribes-Tribes",
+    "fl-enemy-players-Players",
+    "fl-enemy-tribes-Tribes",
+    "fl-min-distance",
+    "fl-max-distance",
+    "fl-min-points",
+    "fl-max-points",
+    "fl-fakes-per-player",
+    "fl-filter-villages",
+    "fl-image",
+    "fl-display-targets",
+    "fl-raw-coordinates",
+    "fl-with-counts",
+    "fl-ally-village-radius",
+    "fl-number-ally-villages-radius",
+
+    //Frontline
+    "f-ally-players-Players",
+    "f-ally-tribes-Tribes",
+    "f-enemy-players-Players",
+    "f-enemy-tribes-Tribes",
+    "f-min-distance",
+    "f-max-distance",
+    "f-min-points",
+    "f-max-points",
+    "f-filter-villages",
+    "f-image",
+    "f-raw-coordinates",
+    "f-ally-village-radius",
+    "f-number-ally-villages-radius",
+];
 // Globals
 
 var scriptConfig = {
     scriptData: {
-        prefix: 'clg',
-        name: 'Coord List Generator',
+        prefix: 'sbFLG',
+        name: 'Fakelist Generator',
         version: 'v1.0',
         author: 'SaveBank',
         authorUrl: 'https://forum.tribalwars.net/index.php?members/savebank.131111/',
@@ -31,7 +86,7 @@ var scriptConfig = {
         en_DK: {
             'Redirecting...': 'Redirecting...',
             Help: 'Help',
-            'Coord List Generator': 'Coord List Generator',
+            'Fakelist Generator': 'Fakelist Generator',
             'Allied Players (Separate with \',\')': 'Allied Players<br>(Separate with \',\')',
             'Allied Tribes (Separate with \',\')': 'Allied Tribes<br>(Separate with \',\')',
             'Enemy Players (Separate with \',\')': 'Enemy Players<br>(Separate with \',\')',
@@ -75,12 +130,12 @@ var scriptConfig = {
             'Max Villages': 'Max Villages',
             'Frontline Coordinates:': 'Frontline Coordinates:',
             'Calculate Frontline': 'Calculate Frontline',
-            'Exclude Players (Separate with \',\')': 'Exclude Players<br>(Separate with \',\')',
+            'Exclude Players (Separate with \',\')': 'Exclude Players (Separate with \',\')',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
             Help: 'Hilfe',
-            'Coord List Generator': 'Koordinatenlisten Generator',
+            'Fakelist Generator': 'Fakelisten Generator',
             'Allied Players (Separate with \',\')': 'Verbündete Spieler<br>(Getrennt durch \',\')',
             'Allied Tribes (Separate with \',\')': 'Verbündete Stämme<br>(Getrennt durch \',\')',
             'Enemy Players (Separate with \',\')': 'Feindliche Spieler<br>(Getrennt durch \',\')',
@@ -124,7 +179,7 @@ var scriptConfig = {
             'Max Villages': 'Max Dörfer',
             'Frontline Coordinates:': 'Frontline Koordinaten:',
             'Calculate Frontline': 'Frontline berechnen',
-            'Exclude Players (Separate with \',\')': 'Ohne Spieler<br>(Separate with \',\')'
+            'Exclude Players (Separate with \',\')': 'Ohne Spieler (Separate with \',\')'
         }
     }
     ,
@@ -141,7 +196,7 @@ var scriptConfig = {
 
 $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript.src}`,
     async function () {
-        // Initialize Library
+        const startTime = performance.now();
         if (DEBUG) {
             console.debug("INIT");
         }
@@ -156,12 +211,18 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             return;
         }
         const { tribes, players, villages, worldUnitInfo, worldConfig } = await fetchWorldConfigData();
+        const endTime = performance.now();
+        if (DEBUG) console.debug(`Startup time: ${(endTime - startTime).toFixed(4)} milliseconds`);
 
         // Entry point
         (async function () {
             try {
+                const startTime = performance.now();
                 renderUI();
-                // addEventHandlers();
+                addEventHandlers();
+                initializeInputFields();
+                const endTime = performance.now();
+                if (DEBUG) console.debug(`Time to initialize: ${(endTime - startTime).toFixed(4)} milliseconds`);
             } catch (error) {
                 UI.ErrorMessage(twSDK.tt('There was an error!'));
                 console.error(`${scriptInfo} Error:`, error);
@@ -183,29 +244,42 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             <div id="fakelist">
                 ${fakelistContent}
             </div>
-            <div id="villagelist">
+            <div id="villagelist" style="display: none;">
                 ${villageListContent}
             </div>
-            <div id="playerlist">
+            <div id="playerlist" style="display: none;">
                 ${playerListContent}
             </div>
-            <div>
+            <div id="frontline" style="display: none;">
                 ${frontlineContent}
             </div>
             `
             twSDK.renderBoxWidget(
                 content,
-                'CoordListGenerator',
-                'coord-list-generator',
+                'FakelistGenerator',
+                'fakelist-generator',
                 style
             );
 
             const endTime = performance.now();
-            console.log(`Time to render: ${endTime - startTime} milliseconds`);
+            if (DEBUG) console.debug(`Time to render: ${(endTime - startTime).toFixed(4)} milliseconds`);
         }
 
         function addEventHandlers() {
-            return;
+            $('#selection-menu').on('change', function () {
+                const selectedValue = $(this).val();
+                $('#fakelist, #villagelist, #playerlist, #frontline').hide();
+                $(`#${selectedValue}`).show();
+                const localStorageSettings = getLocalStorage();
+                localStorageSettings['selection-menu'] = selectedValue;
+                saveLocalStorage(localStorageSettings);
+                if (DEBUG) console.debug(`${scriptInfo}: selection-menu changed to ${selectedValue}`)
+            });
+            $(document).ready(function () {
+                allIds.forEach(function (id) {
+                    $('#' + id).on('change', handleInputChange);
+                });
+            });
         }
 
         function renderDropdownMenu() {
@@ -269,7 +343,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             ${twSDK.tt('Calculate Player List')}
         </a>
     </div>
-    <div id="player-list-result">
+    <div id="player-list-result" style="display: none;">
         <fieldset>
             <legend>${twSDK.tt('Players:')}</legend>
             <textarea readonly id="pl-player-list-display" class="result-text"></textarea>
@@ -349,7 +423,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 ${twSDK.tt('Calculate Village List')}
             </a>
         </div>
-        <div id="village-list-result">
+        <div id="village-list-result" style="display: none;">
             <fieldset>
                 <legend>${twSDK.tt('Coordinates:')}</legend>
                 <textarea readonly id="vl-coordinates-display" class="result-text"></textarea>
@@ -419,7 +493,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 </fieldset>
                 <fieldset>
                     <legend>${twSDK.tt('Fakes per Player')}</legend>
-                    <input type="number" id="fakes-per-player" value="0" />
+                    <input type="number" id="fl-fakes-per-player" value="0" />
                 </fieldset>
             </div>
             <div class="ra-mb10">
@@ -435,19 +509,19 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                             <input type="checkbox" id="fl-image"/>
                         </div>
                         <div>
-                            <label for="display-targets">${twSDK.tt('Show Target Coordinates?')}</label>
-                            <input type="checkbox" id="display-targets" />
+                            <label for="fl-display-targets">${twSDK.tt('Show Target Coordinates?')}</label>
+                            <input type="checkbox" id="fl-display-targets"/>
                         </div>
                         <div>
                             <label for="fl-raw-coordinates">${twSDK.tt('Raw Coordinates?')}</label>
-                            <input type="checkbox" id="fl-raw-coordinates" />
+                            <input type="checkbox" id="fl-raw-coordinates"/>
                         </div>
                         <div>
-                            <label for="with-counts">${twSDK.tt('With Counts?')}</label>
-                            <input type="checkbox" id="with-counts" />
+                            <label for="fl-with-counts">${twSDK.tt('With Counts?')}</label>
+                            <input type="checkbox" id="fl-with-counts"/>
                         </div>
                     </div>
-                    <div class="sb-grid sb-grid-3 ra-mb10 filter-village-options">
+                    <div id="fl-filter-options" class="sb-grid sb-grid-3 ra-mb10 filter-village-options" style="display: none;">
                         <div class="info-text">
                             ${twSDK.tt('Filter allied villages if not enough other allied villages are nearby:')}
                         </div>
@@ -467,10 +541,10 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     ${twSDK.tt('Calculate Fakelist')}
                 </a>
             </div>
-            <div id="fakelist-result">
+            <div id="fakelist-result" style="display: none;">
                 <fieldset>
                     <legend>${twSDK.tt('Fakelist:')}</legend>
-                    <textarea readonly id="fakelist-display" class="result-text"></textarea>
+                    <textarea readonly id="fl-fakelist-display" class="result-text"></textarea>
                     ${copyButtonFakelist}
                 </fieldset>
                 <fieldset>
@@ -557,7 +631,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                             <input type="checkbox" id="f-raw-coordinates" />
                         </div>
                     </div>
-                    <div class="sb-grid sb-grid-3 ra-mb10 filter-village-options">
+                    <div id="f-filter-options" class="sb-grid sb-grid-3 ra-mb10 filter-village-options" style="display: none;">
                         <div class="info-text">
                             ${twSDK.tt('Filter allied villages if not enough other allied villages are nearby:')}
                         </div>
@@ -577,7 +651,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     ${twSDK.tt('Calculate Frontline')}
                 </a>
             </div>
-            <div id="frontline-result">
+            <div id="frontline-result" style="display: none;">
                 <fieldset>
                     <legend>${twSDK.tt('Frontline Coordinates:')}</legend>
                     <textarea readonly id="f-frontline-display" class="result-text"></textarea>
@@ -798,7 +872,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             }
             let dropdown = `<input type="email" class="${prefixId}-input" multiple list="${prefixId}-select-${entity}" placeholder="${twSDK.tt(
                 'Start typing for suggestions ...'
-            )}" id="${prefixId}_${entity}"><datalist id="${prefixId}-select-${entity}">`;
+            )}" id="${prefixId}-${entity}"><datalist id="${prefixId}-select-${entity}">`;
             sortedArray.forEach((item) => {
                 if (item.length > 0 && item[0].length !== 0) {
                     if (entity === 'Tribes') {
@@ -824,18 +898,349 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 </button>
             `;
         }
-        // TODO
+        function initializeInputFields() {
+            const settingsObject = getLocalStorage();
+            if (DEBUG) console.debug(settingsObject);
+
+            for (let id in settingsObject) {
+                if (settingsObject.hasOwnProperty(id)) {
+                    const element = document.getElementById(id);
+
+                    if (element && element.type === 'checkbox') {
+                        element.checked = settingsObject[id] === true;
+                    } else if (element && id === 'selection-menu') {
+                        $('#fakelist, #villagelist, #playerlist, #frontline').hide();
+                        $(`#${settingsObject[id]}`).show();
+                        element.value = settingsObject[id];
+                    } else if (element) {
+                        element.value = settingsObject[id];
+                    } else {
+                        console.error(`Element not found for ID: ${id} in ${settingsObject}`);
+                    }
+                }
+            }
+        }
+        function handleInputChange() {
+            const inputId = $(this).attr('id');
+            let inputValue;
+
+            switch (inputId) {
+                case "pl-players-Players":
+                    inputValue = $(this).val();
+                    break;
+                case "pl-tribes-Tribes":
+                    inputValue = $(this).val();
+                    break;
+                case "pl-excluded-players-Players":
+                    inputValue = $(this).val();
+                    break;
+                case "pl-min-points":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "pl-max-points":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "pl-min-villages":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "pl-max-villages":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "pl-separator":
+                    inputValue = $(this).val();
+                    break;
+                case "vl-players-Players":
+                    inputValue = $(this).val();
+                    break;
+                case "vl-tribes-Tribes":
+                    inputValue = $(this).val();
+                    break;
+                case "vl-min-x-coordinate":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "vl-max-x-coordinate":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "vl-min-y-coordinate":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "vl-max-y-coordinate":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "vl-min-points":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "vl-max-points":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "vl-image":
+                    inputValue = $(this).prop("checked");
+                    break;
+                case "vl-raw-coordinates":
+                    inputValue = $(this).prop("checked");
+                    break;
+                case "fl-ally-players-Players":
+                    inputValue = $(this).val();
+                    break;
+                case "fl-ally-tribes-Tribes":
+                    inputValue = $(this).val();
+                    break;
+                case "fl-enemy-players-Players":
+                    inputValue = $(this).val();
+                    break;
+                case "fl-enemy-tribes-Tribes":
+                    inputValue = $(this).val();
+                    break;
+                case "fl-min-distance":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "fl-max-distance":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "fl-min-points":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "fl-max-points":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "fl-fakes-per-player":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "fl-filter-villages":
+                    inputValue = $(this).prop("checked");
+                    if (inputValue === true) {
+                        $(`#fl-filter-options`).show();
+                    } else {
+                        $(`#fl-filter-options`).hide();
+                    }
+                    break;
+                case "fl-image":
+                    inputValue = $(this).prop("checked");
+                    break;
+                case "fl-display-targets":
+                    inputValue = $(this).prop("checked");
+                    break;
+                case "fl-raw-coordinates":
+                    inputValue = $(this).prop("checked");
+                    break;
+                case "fl-with-counts":
+                    inputValue = $(this).prop("checked");
+                    break;
+                case "fl-ally-village-radius":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "fl-number-ally-villages-radius":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "f-ally-players-Players":
+                    inputValue = $(this).val();
+                    break;
+                case "f-ally-tribes-Tribes":
+                    inputValue = $(this).val();
+                    break;
+                case "f-enemy-players-Players":
+                    inputValue = $(this).val();
+                    break;
+                case "f-enemy-tribes-Tribes":
+                    inputValue = $(this).val();
+                    break;
+                case "f-min-distance":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "f-max-distance":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "f-min-points":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "f-max-points":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "f-filter-villages":
+                    inputValue = $(this).prop("checked");
+                    if (inputValue === true) {
+                        $(`#f-filter-options`).show();
+                    } else {
+                        $(`#f-filter-options`).hide();
+                    }
+                    break;
+                case "f-image":
+                    inputValue = $(this).prop("checked");
+                    break;
+                case "f-raw-coordinates":
+                    inputValue = $(this).prop("checked");
+                    break;
+                case "f-ally-village-radius":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                case "f-number-ally-villages-radius":
+                    inputValue = $(this).val();
+                    if (parseInt(inputValue) < 0) {
+                        $(this).val(0);
+                        inputValue = 0;
+                    }
+                    break;
+                default:
+                    console.error(`Unknown id: ${inputId}`)
+            }
+            if (DEBUG) console.debug(`${scriptInfo}: ${inputId} changed to ${inputValue}`)
+            const settingsObject = getLocalStorage();
+            settingsObject[inputId] = inputValue;
+            saveLocalStorage(settingsObject);
+        }
         // Service: Function to get settings from localStorage
         function getLocalStorage() {
-            const localStorageSettings = localStorage.getItem('sbCoordListGenerator');
+            const localStorageSettings = localStorage.getItem('sbFakelistGenerator');
 
             if (localStorageSettings) {
                 // If settings exist in localStorage, parse and return the object
                 return JSON.parse(localStorageSettings);
             } else {
-                // TODO
-                // If no settings found, create an object with default values
                 const defaultSettings = {
+                    // Menu Selection
+                    "selection-menu": "fakelist",
+                    // Player List
+                    "pl-players-Players": "",
+                    "pl-tribes-Tribes": "",
+                    "pl-excluded-players-Players": "",
+                    "pl-min-points": 0,
+                    "pl-max-points": 99999999,
+                    "pl-min-villages": 0,
+                    "pl-max-villages": 99999,
+                    "pl-separator": ",",
+
+                    // Village List
+                    "vl-players-Players": "",
+                    "vl-tribes-Tribes": "",
+                    "vl-min-x-coordinate": 0,
+                    "vl-max-x-coordinate": 999,
+                    "vl-min-y-coordinate": 0,
+                    "vl-max-y-coordinate": 999,
+                    "vl-min-points": 0,
+                    "vl-max-points": 99999,
+                    "vl-image": false,
+                    "vl-raw-coordinates": false,
+
+                    // Fakelist
+                    "fl-ally-players-Players": "",
+                    "fl-ally-tribes-Tribes": "",
+                    "fl-enemy-players-Players": "",
+                    "fl-enemy-tribes-Tribes": "",
+                    "fl-min-distance": 0,
+                    "fl-max-distance": 9999,
+                    "fl-min-points": 0,
+                    "fl-max-points": 99999,
+                    "fl-fakes-per-player": 0,
+                    "fl-filter-villages": false,
+                    "fl-image": false,
+                    "fl-display-targets": false,
+                    "fl-raw-coordinates": false,
+                    "fl-with-counts": false,
+                    "fl-ally-village-radius": 10,
+                    "fl-number-ally-villages-radius": 12,
+
+                    // Frontline
+                    "f-ally-players-Players": "",
+                    "f-ally-tribes-Tribes": "",
+                    "f-enemy-players-Players": "",
+                    "f-enemy-tribes-Tribes": "",
+                    "f-min-distance": 0,
+                    "f-max-distance": 99999,
+                    "f-min-points": 0,
+                    "f-max-points": 99999,
+                    "f-filter-villages": false,
+                    "f-image": false,
+                    "f-raw-coordinates": false,
+                    "f-ally-village-radius": 10,
+                    "f-number-ally-villages-radius": 12,
                 };
 
                 saveLocalStorage(defaultSettings);
@@ -847,7 +1252,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         //Service: Function to save settings to localStorage
         function saveLocalStorage(settingsObject) {
             // Stringify and save the settings object
-            localStorage.setItem('sbCoordListGenerator', JSON.stringify(settingsObject));
+            localStorage.setItem('sbFakelistGenerator', JSON.stringify(settingsObject));
         }
 
         // Service: Fetch world config and needed data
