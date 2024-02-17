@@ -495,11 +495,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     output += `${x}|${y} `;  // '234|222 '
                 });
             } else {
-                output += "[code]\n";
                 coordinates.forEach(([x, y], index) => {
                     output += `${index + 1}. ${x}|${y}\n`;  // '3. 234|222'
                 });
-                output += "[/code]";
             }
             output = output.trimEnd();
             $('#vl-coordinates-display').val(output);
