@@ -15,7 +15,7 @@
 if (typeof DEBUG !== 'boolean') DEBUG = false;
 
 // CONSTANTS
-const allIds = [
+var allIds = [
     // Player List
     "pl-players-Players",
     "pl-tribes-Tribes",
@@ -71,29 +71,29 @@ const allIds = [
     "f-ally-village-radius",
     "f-number-ally-villages-radius",
 ];
-const buttonIDs = [
+var buttonIDs = [
     "copy-f-frontline-display",
     "copy-fl-target-coordinates-display",
-    "copy-fakelist-display",
+    "copy-fl-fakelist-display",
     "copy-vl-coordinates-display",
     "copy-pl-player-list-display"
 ];
-const DEFAULT_MIN_VILLAGE_POINTS = 0;
-const DEFAULT_MAX_VILLAGE_POINTS = 99999;
-const DEFAULT_MIN_PLAYER_POINTS = 0;
-const DEFAULT_MAX_PLAYER_POINTS = 99999999;
-const DEFAULT_SEPARATOR = ",";
-const DEFAULT_MIN_DISTANCE = 0;
-const DEFAULT_MAX_DISTANCE = 9999;
-const DEFAULT_FAKES_PER_PLAYER = 0;
-const DEFAULT_MIN_X = 0;
-const DEFAULT_MAX_X = 999;
-const DEFAULT_MIN_Y = 0;
-const DEFAULT_MAX_Y = 999;
-const DEFAULT_MIN_VILLAGES = 0;
-const DEFAULT_MAX_VILLAGES = 99999;
-const DEFAULT_RADIUS = 10;
-const DEFAULT_NUMBER_IN_RADIUS = 12;
+var DEFAULT_MIN_VILLAGE_POINTS = 0;
+var DEFAULT_MAX_VILLAGE_POINTS = 99999;
+var DEFAULT_MIN_PLAYER_POINTS = 0;
+var DEFAULT_MAX_PLAYER_POINTS = 99999999;
+var DEFAULT_SEPARATOR = ",";
+var DEFAULT_MIN_DISTANCE = 0;
+var DEFAULT_MAX_DISTANCE = 9999;
+var DEFAULT_FAKES_PER_PLAYER = 0;
+var DEFAULT_MIN_X = 0;
+var DEFAULT_MAX_X = 999;
+var DEFAULT_MIN_Y = 0;
+var DEFAULT_MAX_Y = 999;
+var DEFAULT_MIN_VILLAGES = 0;
+var DEFAULT_MAX_VILLAGES = 99999;
+var DEFAULT_RADIUS = 10;
+var DEFAULT_NUMBER_IN_RADIUS = 12;
 
 
 
@@ -347,6 +347,262 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             const startTime = performance.now();
             resetOutput("fakelist");
 
+            const localStorageSettings = getLocalStorage();
+            let allyPlayersInput = localStorageSettings["fl-ally-players-Players"].split(",");
+            let allyTribesInput = localStorageSettings["fl-ally-tribes-Tribes"].split(",");
+            let enemyPlayerInput = localStorageSettings["fl-enemy-players-Players"].split(",");
+            let enemyTribesInput = localStorageSettings["fl-enemy-tribes-Tribes"].split(",");
+            let minDistance = parseInt(localStorageSettings["fl-min-distance"]);
+            let maxDistance = parseInt(localStorageSettings["fl-max-distance"]);
+            let minPoints = parseInt(localStorageSettings["fl-min-points"]);
+            let maxPoints = parseInt(localStorageSettings["fl-max-points"]);
+            let fakesPerPlayer = parseInt(localStorageSettings["fl-fakes-per-player"]);
+            let filterVillagesBool = parseBool(localStorageSettings["fl-filter-villages"]);
+            let imageBool = parseBool(localStorageSettings["fl-image"]);
+            let displayTargetsBool = parseBool(localStorageSettings["fl-display-targets"]);
+            let rawCoordBool = parseBool(localStorageSettings["fl-raw-coordinates"]);
+            let withCountsBool = parseBool(localStorageSettings["fl-with-counts"]);
+            let allyVillageRadius = parseInt(localStorageSettings["fl-ally-village-radius"]);
+            let numberInAllyVillageRadius = parseInt(localStorageSettings["fl-number-ally-villages-radius"]);
+
+            let allyPlayerIds = [];
+            let additionalAllyPlayerIds = [];
+
+            let enemyPlayerIds = [];
+            let additionalEnemyPlayerIds = [];
+
+            allyPlayersInput = allyPlayersInput.filter(item => item);
+            allyTribesInput = allyTribesInput.filter(item => item);
+
+            enemyPlayerInput = enemyPlayerInput.filter(item => item);
+            enemyTribesInput = enemyTribesInput.filter(item => item);
+
+
+            // Ally ids
+            allyTribesInput.forEach(tribeName => {
+                let tribe = tribes.find(tribe => tribe[2] === tribeName);
+                if (!tribe) {
+                    console.warn(`${scriptInfo}: Tribe named ${tribeName} does not exist.`);
+                    return;
+                }
+                let tribeId = tribe[0];
+                players.forEach(player => {
+                    if (player[2] === tribeId) {
+                        allyPlayerIds.push(player[0]);
+                    }
+                });
+            });
+
+            allyPlayersInput.forEach(inputName => {
+                let playerExists = players.find(player => player[1] === inputName);
+                if (playerExists) {
+                    additionalAllyPlayerIds.push(playerExists[0]);
+                }
+            });
+
+            let finalAllyPlayerIds = [...new Set([...allyPlayerIds, ...additionalAllyPlayerIds])];
+
+            if (DEBUG) console.debug(`${scriptInfo}: Ally Player Ids found in calculateFakelist(): `, finalAllyPlayerIds);
+
+            // Enemy ids 
+            enemyTribesInput.forEach(tribeName => {
+                let tribe = tribes.find(tribe => tribe[2] === tribeName);
+                if (!tribe) {
+                    console.warn(`${scriptInfo}: Tribe named ${tribeName} does not exist.`);
+                    return;
+                }
+                let tribeId = tribe[0];
+                players.forEach(player => {
+                    if (player[2] === tribeId) {
+                        enemyPlayerIds.push(player[0]);
+                    }
+                });
+            });
+
+            enemyPlayerInput.forEach(inputName => {
+                let playerExists = players.find(player => player[1] === inputName);
+                if (playerExists) {
+                    additionalEnemyPlayerIds.push(playerExists[0]);
+                }
+            });
+
+            let finalEnemyPlayerIds = [...new Set([...enemyPlayerIds, ...additionalEnemyPlayerIds])];
+
+            if (DEBUG) console.debug(`${scriptInfo}: Enemy Player Ids found in calculateFakelist(): `, finalEnemyPlayerIds);
+
+            // Ally coordinates
+            let allyCoordinates = villages
+                .filter(village => finalAllyPlayerIds.includes(village[4]) &&
+                    village[5] >= minPoints &&
+                    village[5] <= maxPoints)
+                .map(village => [village[2], village[3]]);
+
+            if (DEBUG) console.debug(`${scriptInfo}: Ally Coordinates found in calculateFakelist(): `, allyCoordinates);
+            // Enemy coordinates
+            let enemyCoordinates = villages
+                .filter(village => finalEnemyPlayerIds.includes(village[4]) &&
+                    village[5] >= minPoints &&
+                    village[5] <= maxPoints)
+                .map(village => [village[2], village[3]]);
+
+            if (DEBUG) console.debug(`${scriptInfo}: Enemy Coordinates found in calculateFakelist(): `, enemyCoordinates);
+            // Filter ally coordinates
+            let filteredAllyCoordinates = [];
+            if (filterVillagesBool) {
+                for (let i = 0; i < allyCoordinates.length; i++) {
+                    let centralVillage = allyCoordinates[i];
+                    let nearbyVillages = 0;
+                    for (let j = 0; j < allyCoordinates.length; j++) {
+                        if (i === j) continue;
+                        let compareVillage = allyCoordinates[j];
+                        let distance = Math.sqrt(Math.pow(compareVillage[0] - centralVillage[0], 2) + Math.pow(compareVillage[1] - centralVillage[1], 2));
+                        if (distance <= allyVillageRadius) nearbyVillages++;
+                        if (nearbyVillages >= numberInAllyVillageRadius) break;
+                    }
+                    if (nearbyVillages >= numberInAllyVillageRadius) {
+                        filteredAllyCoordinates.push(centralVillage);
+                    }
+                }
+            } else {
+                filteredAllyCoordinates = allyCoordinates;
+            }
+            if (DEBUG) console.debug(`${scriptInfo}: Filtered Ally Coordinates in calculateFakelist(): `, filteredAllyCoordinates);
+            // Filter enemy coordinates
+            let filteredEnemyCoordinates = [];
+            if (minDistance > 0) {
+                enemyCoordinates.forEach(enemyCoordinate => {
+                    let isTooClose = false;
+                    for (let filteredAllyCoordinate of filteredAllyCoordinates) {
+                        let distance = Math.sqrt(Math.pow(enemyCoordinate[0] - filteredAllyCoordinate[0], 2) +
+                            Math.pow(enemyCoordinate[1] - filteredAllyCoordinate[1], 2));
+                        if (distance < minDistance) {
+                            isTooClose = true;
+                            break;
+                        }
+                    }
+                    if (!isTooClose) {
+                        filteredEnemyCoordinates.push(enemyCoordinate);
+                    }
+                });
+            } else {
+                filteredEnemyCoordinates = enemyCoordinates;
+            }
+            if (DEBUG) console.debug(`${scriptInfo}: Filtered Enemy Coordinates in calculateFakelist(): `, filteredEnemyCoordinates);
+            let finalEnemyCoordinates = [];
+
+            filteredEnemyCoordinates.forEach(enemyCoordinate => {
+                for (let filteredAllyCoordinate of filteredAllyCoordinates) {
+                    let distance = Math.sqrt(Math.pow(enemyCoordinate[0] - filteredAllyCoordinate[0], 2) +
+                        Math.pow(enemyCoordinate[1] - filteredAllyCoordinate[1], 2));
+
+                    if (distance >= minDistance && distance <= maxDistance) {
+                        finalEnemyCoordinates.push(enemyCoordinate);
+                        break;
+                    }
+                }
+            });
+            if (DEBUG) console.debug(`${scriptInfo}: Highlighted/Result Coordinates in calculateFakelist(): `, finalEnemyCoordinates);
+
+            let finalAllyPlayerIdsSet = new Set(finalAllyPlayerIds);
+            let finalAllyPlayerNames = players
+                .filter(player => finalAllyPlayerIdsSet.has(player[0]))
+                .map(player => player[1]);
+
+            if (DEBUG) console.debug(`${scriptInfo}: All ally playernames in calculateFakelist(): `, finalAllyPlayerNames);
+
+            let fakeListAssignments = {};
+            let localFinalEnemyCoordinates = [...finalEnemyCoordinates];
+
+            finalAllyPlayerNames.forEach(player => {
+                fakeListAssignments[player] = [];
+
+                for (let i = 0; i < fakesPerPlayer; i++) {
+                    if (localFinalEnemyCoordinates.length === 0)
+                        localFinalEnemyCoordinates = [...finalEnemyCoordinates];
+                    let randomIndex = Math.floor(Math.random() * localFinalEnemyCoordinates.length);
+                    let coord = localFinalEnemyCoordinates.splice(randomIndex, 1)
+                    fakeListAssignments[player].push(...coord);
+                }
+            });
+
+
+            let output = "";
+
+
+            // Counts how many times each coordinate appears
+            const countOccurances = arr => arr.reduce((prev, curr) => (prev[curr] = ++prev[curr] || 1, prev), {});
+
+            for (let player in fakeListAssignments) {
+                output += `[player]${player}[/player]:\n[spoiler=Fakes]`; // Add player name to the output
+
+                if (withCountsBool) {
+                    // Get a count of how many times each coordinate appears
+                    let counts = countOccurances(fakeListAssignments[player]);
+                    let maxCount = Math.max(...Object.values(counts));
+
+                    let index = 1;
+
+                    // Loop through each count tier
+                    for (let i = 1; i <= maxCount; i++) {
+                        output += `[spoiler=${i}]\n`;
+                        if (rawCoordBool) output += `[code]\n`;
+
+                        // Loop through each coordinate
+                        for (let coord of fakeListAssignments[player]) {
+                            // If this coordinate should be printed in this tier
+                            if (counts[coord] == i) {
+                                if (rawCoordBool) {
+                                    output += `${coord[0]}|${coord[1]} \n`;
+                                } else {
+                                    output += `${index}. ${coord[0]}|${coord[1]}\n`;
+                                    index++;
+                                }
+                            }
+                        }
+                        if (rawCoordBool) output += `[/code]\n`;
+                        output += `[/spoiler]\n`
+                    }
+                } else {
+                    if (rawCoordBool) output += `[code]\n`;
+                    fakeListAssignments[player].forEach((coordinate, index) => {
+                        if (rawCoordBool) {
+                            output += `${coordinate[0]}|${coordinate[1]} \n`;
+                        } else {
+                            output += `${index + 1}. ${coordinate[0]}|${coordinate[1]}\n`;
+                        }
+                    });
+                    if (rawCoordBool) output += `[/code]\n`;
+                }
+                output += `[/spoiler]\n`
+            }
+
+            $('#fl-fakelist-display').val(output);
+
+            if (imageBool) {
+                let imageURL = createImage(finalEnemyCoordinates, allyCoordinates, enemyCoordinates);
+                $(`#fl-image-display`).attr('src', imageURL);
+                $(`#fl-image-div`).show();
+            }
+
+            if (displayTargetsBool) {
+                let output_targets = "";
+
+                if (rawCoordBool) {
+                    finalEnemyCoordinates.forEach(([x, y]) => {
+                        output_targets += `${x}|${y} `;  // '234|222 '
+                    });
+                } else {
+                    finalEnemyCoordinates.forEach(([x, y], index) => {
+                        output_targets += `${index + 1}. ${x}|${y}\n`;  // '3. 234|222'
+                    });
+                }
+                output_targets = output_targets.trimEnd();
+                $('#fl-target-coordinates-display').val(output_targets);
+                $(`#fl-target-coordinates-div`).show();
+            }
+
+            $(`#fakelist-result`).show();
+
             const endTime = performance.now();
             if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculateFakelist(): ${(endTime - startTime).toFixed(2)} milliseconds`);
 
@@ -523,10 +779,8 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             output = output.trimEnd();
             $('#f-frontline-display').val(output);
 
-            let imageURL;
-
             if (imageBool) {
-                imageURL = createImage(finalEnemyCoordinates, allyCoordinates, enemyCoordinates);
+                let imageURL = createImage(finalEnemyCoordinates, allyCoordinates, enemyCoordinates);
                 $(`#f-image-display`).attr('src', imageURL);
                 $(`#f-image-div`).show();
             }
@@ -843,18 +1097,11 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         }
 
         function renderFakelist() {
-            // REMOVE IN LIVE
-            const allyCoordinates = generateRandomCluster(300, 400, 200, 100);
-            const enemyCoordinates = generateRandomCluster(400, 500, 300, 50);
-            const hightlightedVillagesCoordinates = generateRandomCluster(450, 540, 40, 20);
-
-            const imageDataUrl = createImage(allyCoordinates, enemyCoordinates, hightlightedVillagesCoordinates);
-
             const dropdownAllyPlayer = buildDropDown(players, "Players", "fl-ally-players");
             const dropdownAllyTribe = buildDropDown(tribes, "Tribes", "fl-ally-tribes");
             const dropdownEnemyPlayer = buildDropDown(players, "Players", "fl-enemy-players");
             const dropdownEnemyTribe = buildDropDown(tribes, "Tribes", "fl-enemy-tribes");
-            const copyButtonFakelist = generateCopyButton("fakelist-display");
+            const copyButtonFakelist = generateCopyButton("fl-fakelist-display");
             const copyButtonTargetCoordinates = generateCopyButton("fl-target-coordinates-display");
             // Start building the HTML string
             let html =
@@ -957,7 +1204,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 </fieldset>
                 <fieldset id="fl-image-div" style="display: none;">
                     <legend>${twSDK.tt('Image:')}</legend>
-                    <img id="fl-image-display" src="${imageDataUrl}" alt="Image"/>
+                    <img id="fl-image-display" src="" alt="Image"/>
                 </fieldset>
             </div>
         `
@@ -1346,7 +1593,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
         function initializeInputFields() {
             const settingsObject = getLocalStorage();
-            if (DEBUG) console.debug(`${scriptInfo}: Settings object from local storage: ${settingsObject}`);
+            if (DEBUG) console.debug(`${scriptInfo}: Settings object from local storage: `, settingsObject);
 
             for (let id in settingsObject) {
                 if (settingsObject.hasOwnProperty(id)) {
@@ -1354,6 +1601,20 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
                     if (element && element.type === 'checkbox') {
                         element.checked = settingsObject[id] === true;
+                        if (id === 'fl-filter-villages') {
+                            if (parseBool(settingsObject[id])) {
+                                $(`#fl-filter-options`).show();
+                            } else {
+                                $(`#fl-filter-options`).hide();
+                            }
+                        }
+                        if (id === 'f-filter-villages') {
+                            if (parseBool(settingsObject[id])) {
+                                $(`#f-filter-options`).show();
+                            } else {
+                                $(`#f-filter-options`).hide();
+                            }
+                        }
                     } else if (element && id === 'selection-menu') {
                         $('#fakelist, #villagelist, #playerlist, #frontline').hide();
                         $(`#${settingsObject[id]}`).show();
@@ -1361,7 +1622,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     } else if (element) {
                         element.value = settingsObject[id];
                     } else {
-                        console.error(`${scriptInfo}: Element not found for ID: ${id} in ${settingsObject}`);
+                        console.error(`${scriptInfo}: Element not found for ID: ${id} in `, settingsObject);
                     }
                 }
             }
