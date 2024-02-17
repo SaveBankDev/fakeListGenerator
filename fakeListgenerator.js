@@ -155,6 +155,9 @@ var scriptConfig = {
             'Frontline Coordinates:': 'Frontline Coordinates:',
             'Calculate Frontline': 'Calculate Frontline',
             'Exclude Players (Separate with \',\')': 'Exclude Players (Separate with \',\')',
+            'No players or tribes selected': 'No players or tribes selected',
+            'There was an error while fetching the data!': 'There was an error while fetching the data!',
+            'There was an error!': 'There was an error!',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
@@ -203,7 +206,10 @@ var scriptConfig = {
             'Max Villages': 'Max Dörfer',
             'Frontline Coordinates:': 'Frontline Koordinaten:',
             'Calculate Frontline': 'Frontline berechnen',
-            'Exclude Players (Separate with \',\')': 'Ohne Spieler (Separate with \',\')'
+            'Exclude Players (Separate with \',\')': 'Ohne Spieler (Separate with \',\')',
+            'No players or tribes selected': 'Keine Spieler oder Stämme ausgwählt',
+            'There was an error while fetching the data!': 'Es ist ein Fehler beim Abrufen der Daten aufgetreten!',
+            'There was an error!': 'Es gab einen Fehler',
         }
     }
     ,
@@ -222,7 +228,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
     async function () {
         const startTime = performance.now();
         if (DEBUG) {
-            console.debug("INIT");
+            console.debug(`Init`);
         }
         await twSDK.init(scriptConfig);
         const scriptInfo = twSDK.scriptInfo();
@@ -235,11 +241,12 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             return;
         }
         const { tribes, players, villages, worldUnitInfo, worldConfig } = await fetchWorldConfigData();
+        const allCoords = villages.map(village => [village[2], village[3]]);
         const endTime = performance.now();
-        if (DEBUG) console.debug(`Startup time: ${(endTime - startTime).toFixed(4)} milliseconds`);
-        if (DEBUG) console.debug(tribes);
-        if (DEBUG) console.debug(players);
-        if (DEBUG) console.debug(villages);
+        if (DEBUG) console.debug(`${scriptInfo}: Startup time: ${(endTime - startTime).toFixed(4)} milliseconds`);
+        if (DEBUG) console.debug(`${scriptInfo}: `, tribes);
+        if (DEBUG) console.debug(`${scriptInfo}: `, players);
+        if (DEBUG) console.debug(`${scriptInfo}: `, villages);
         // Entry point
         (async function () {
             try {
@@ -248,10 +255,10 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 addEventHandlers();
                 initializeInputFields();
                 const endTime = performance.now();
-                if (DEBUG) console.debug(`Time to initialize: ${(endTime - startTime).toFixed(4)} milliseconds`);
+                if (DEBUG) console.debug(`${scriptInfo}: Time to initialize: ${(endTime - startTime).toFixed(4)} milliseconds`);
             } catch (error) {
                 UI.ErrorMessage(twSDK.tt('There was an error!'));
-                console.error(`${scriptInfo} Error:`, error);
+                console.error(`${scriptInfo}: Error:`, error);
             }
         })();
 
@@ -288,7 +295,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             );
 
             const endTime = performance.now();
-            if (DEBUG) console.debug(`Time to render: ${(endTime - startTime).toFixed(4)} milliseconds`);
+            if (DEBUG) console.debug(`${scriptInfo}: Time to render: ${(endTime - startTime).toFixed(4)} milliseconds`);
         }
 
         function addEventHandlers() {
@@ -322,9 +329,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     let textareaContent = $('#' + textAreaId).val();
                     if (DEBUG) console.debug(`${scriptInfo}: Copied ${textareaContent} from ${textAreaId}`);
                     navigator.clipboard.writeText(textareaContent).then(function () {
-                        console.log('Copying to clipboard was successful!');
+                        console.log(`${scriptInfo}: Copying to clipboard was successful!`);
                     }, function (err) {
-                        console.error('Error occurred copying to clipboard: ', err);
+                        console.error(`${scriptInfo}: Error occurred copying to clipboard: `, err);
                     });
                 });
             });
@@ -341,7 +348,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             resetOutput("fakelist");
 
             const endTime = performance.now();
-            if (DEBUG) console.debug(`Calculation time for calculateFakelist(): ${(endTime - startTime).toFixed(4)} milliseconds`);
+            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculateFakelist(): ${(endTime - startTime).toFixed(4)} milliseconds`);
 
         }
 
@@ -351,7 +358,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             resetOutput("frontline");
 
             const endTime = performance.now();
-            if (DEBUG) console.debug(`Calculation time for calculateFrontline(): ${(endTime - startTime).toFixed(4)} milliseconds`);
+            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculateFrontline(): ${(endTime - startTime).toFixed(4)} milliseconds`);
 
         }
 
@@ -379,13 +386,18 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
             if (playerInput.length === 0 && tribeInput.length === 0) {
                 console.error(`${scriptInfo}: No player or tribes selected`);
-                UI.ErrorMessage("No players or tribes selected");
+                UI.ErrorMessage(twSDK.tt('No players or tribes selected'));
                 return;
             }
 
 
             tribeInput.forEach(tribeName => {
-                let tribeId = tribes.find(tribe => tribe[2] === tribeName)[0];
+                let tribe = tribes.find(tribe => tribe[2] === tribeName);
+                if (!tribe) {
+                    console.warn(`${scriptInfo}: Tribe named ${tribeName} does not exist.`);
+                    return;
+                }
+                let tribeId = tribe[0];;
                 players.forEach(player => {
                     if (player[2] === tribeId && !playersToExclude.includes(player[1]) &&
                         player[3] >= minVillages && player[3] <= maxVillages &&
@@ -410,7 +422,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             $('#pl-player-list-display').val(playerNamesString);
             $(`#player-list-result`).show();
             const endTime = performance.now();
-            if (DEBUG) console.debug(`Calculation time for calculatePlayerList(): ${(endTime - startTime).toFixed(4)} milliseconds`);
+            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculatePlayerList(): ${(endTime - startTime).toFixed(4)} milliseconds`);
         }
 
         function calculateVillageList() {
@@ -418,10 +430,91 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             const startTime = performance.now();
             resetOutput("villagelist");
 
+            const localStorageSettings = getLocalStorage();
+            let tribeInput = localStorageSettings["vl-tribes-Tribes"].split(",");
+            let playerInput = localStorageSettings["vl-players-Players"].split(",");
+            let minPoints = parseInt(localStorageSettings["vl-min-points"]);
+            let maxPoints = parseInt(localStorageSettings["vl-max-points"]);
+            let minXCoord = parseInt(localStorageSettings["vl-min-x-coordinate"]);
+            let maxXCoord = parseInt(localStorageSettings["vl-max-x-coordinate"]);
+            let minYCoord = parseInt(localStorageSettings["vl-min-y-coordinate"]);
+            let maxYCoord = parseInt(localStorageSettings["vl-max-y-coordinate"]);
+            let imageBool = parseBool(localStorageSettings["vl-image"]);
+            let rawCoordBool = parseBool(localStorageSettings["vl-raw-coordinates"]);
+            let playerIds = [];
+            let additionalPlayerIds = [];
+
+            tribeInput = tribeInput.filter(item => item);
+            playerInput = playerInput.filter(item => item);
 
 
+
+            tribeInput.forEach(tribeName => {
+                let tribe = tribes.find(tribe => tribe[2] === tribeName);
+                if (!tribe) {
+                    console.warn(`${scriptInfo}: Tribe named ${tribeName} does not exist.`);
+                    return;
+                }
+                let tribeId = tribe[0];
+                players.forEach(player => {
+                    if (player[2] === tribeId) {
+                        playerIds.push(player[0]);
+                    }
+                });
+            });
+
+            playerInput.forEach(inputName => {
+                let playerExists = players.find(player => player[1] === inputName);
+                if (playerExists) {
+                    additionalPlayerIds.push(playerExists[0]);
+                }
+            });
+
+            let finalPlayerIds = [...new Set([...playerIds, ...additionalPlayerIds])];
+            if (playerInput.length === 0 && tribeInput.length === 0) {
+                finalPlayerIds = [0];
+            }
+            if (DEBUG) console.debug(`${scriptInfo}: Player Ids found in calculateVillageList(): `, finalPlayerIds);
+
+            let coordinates = villages
+                .filter(village => finalPlayerIds.includes(village[4]) &&
+                    village[5] >= minPoints &&
+                    village[5] <= maxPoints &&
+                    village[2] >= minXCoord &&
+                    village[2] <= maxXCoord &&
+                    village[3] >= minYCoord &&
+                    village[3] <= maxYCoord)
+                .map(village => [village[2], village[3]]);
+
+            if (DEBUG) console.debug(`${scriptInfo}: Coordinates found in calculateVillageList(): `, coordinates);
+
+            let output = "";
+
+            if (rawCoordBool) {
+                coordinates.forEach(([x, y]) => {
+                    output += `${x}|${y} `;  // '234|222 '
+                });
+            } else {
+                output += "[code]\n";
+                coordinates.forEach(([x, y], index) => {
+                    output += `${index + 1}. ${x}|${y}\n`;  // '3. 234|222'
+                });
+                output += "[/code]";
+            }
+            output = output.trimEnd();
+            $('#vl-coordinates-display').val(output);
+
+            let imageURL;
+
+            if (imageBool) {
+                imageURL = createImage(coordinates);
+                $(`#vl-image-display`).attr('src', imageURL);
+                $(`#vl-image-div`).show();
+            }
+
+            $(`#village-list-result`).show();
             const endTime = performance.now();
-            if (DEBUG) console.debug(`Calculation time for calculateVillageList(): ${(endTime - startTime).toFixed(4)} milliseconds`);
+            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculateVillageList(): ${(endTime - startTime).toFixed(4)} milliseconds`);
 
         }
 
@@ -502,12 +595,6 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             const dropdownAllyPlayer = buildDropDown(players, "Players", "vl-players");
             const dropdownAllyTribe = buildDropDown(tribes, "Tribes", "vl-tribes");
             const copyButtonVillageList = generateCopyButton("vl-coordinates-display");
-            // REMOVE IN LIVE
-            const allyCoordinates = generateRandomCluster(300, 400, 700, 250);
-            const enemyCoordinates = [];
-            const hightlightedVillagesCoordinates = [];
-
-            const imageDataUrl = createImage(allyCoordinates, enemyCoordinates, hightlightedVillagesCoordinates);
 
             let html =
                 `
@@ -574,7 +661,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             </fieldset>
             <fieldset id="vl-image-div" style="display: none;">
                 <legend>${twSDK.tt('Image:')}</legend>
-                <img id="vl-image-display" src="${imageDataUrl}" alt="Image"/>
+                <img id="vl-image-display" src="" alt="Image"/>
             </fieldset>
         </div>
     `
@@ -945,23 +1032,14 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
             return css;
         }
-        function createImage(allyCoordinates, enemyCoordinates, hightlightedVillagesCoordinates) {
+        function createImage(hightlightedVillagesCoordinates, allyCoordinates = [], enemyCoordinates = []) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
-            // Calculate cropping boundaries with a buffer of 30 pixels
-            const minX = Math.max(0, Math.min(
-                ...allyCoordinates.concat(enemyCoordinates, hightlightedVillagesCoordinates).map(([x]) => x)
-            ) - 30);
-            const minY = Math.max(0, Math.min(
-                ...allyCoordinates.concat(enemyCoordinates, hightlightedVillagesCoordinates).map(([, y]) => y)
-            ) - 30);
-            const maxX = Math.min(1000, Math.max(
-                ...allyCoordinates.concat(enemyCoordinates, hightlightedVillagesCoordinates).map(([x]) => x)
-            ) + 30);
-            const maxY = Math.min(1000, Math.max(
-                ...allyCoordinates.concat(enemyCoordinates, hightlightedVillagesCoordinates).map(([, y]) => y)
-            ) + 30);
+            const minX = Math.max(0, Math.min(...allCoords.map(([x]) => x)) - 20);
+            const minY = Math.max(0, Math.min(...allCoords.map(([, y]) => y)) - 20);
+            const maxX = Math.min(1000, Math.max(...allCoords.map(([x]) => x)) + 20);
+            const maxY = Math.min(1000, Math.max(...allCoords.map(([, y]) => y)) + 20);
 
             // Set canvas size based on cropping boundaries
             canvas.width = maxX - minX;
@@ -976,6 +1054,12 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 ctx.fillStyle = color;
                 ctx.fillRect(x - minX, y - minY, 1, 1);
             }
+
+            allCoords.forEach(([x, y]) => {
+                if (x >= minX && x < maxX && y >= minY && y < maxY) {
+                    setPixelColor(x, y, 'brown');
+                }
+            });
 
             // Set blue pixels within the cropped area
             allyCoordinates.forEach(([x, y]) => {
@@ -1002,6 +1086,16 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             const dataUrl = canvas.toDataURL();
 
             return dataUrl;
+        }
+        function parseBool(input) {
+            if (typeof input === 'string') {
+                return input.toLowerCase() === 'true';
+            } else if (typeof input === 'boolean') {
+                return input;
+            } else {
+                console.error(`${scriptInfo}: Invalid input: needs to be a string or boolean.`);
+                return false;
+            }
         }
         // Replace if its added to twSDK
         function buildDropDown(array, entity, prefixId = 'ra') {
@@ -1079,7 +1173,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
         function initializeInputFields() {
             const settingsObject = getLocalStorage();
-            if (DEBUG) console.debug(settingsObject);
+            if (DEBUG) console.debug(`${scriptInfo}: Settings object from local storage: ${settingsObject}`);
 
             for (let id in settingsObject) {
                 if (settingsObject.hasOwnProperty(id)) {
@@ -1394,7 +1488,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     }
                     break;
                 default:
-                    console.error(`Unknown id: ${inputId}`)
+                    console.error(`${scriptInfo}: Unknown id: ${inputId}`)
             }
             if (DEBUG) console.debug(`${scriptInfo}: ${inputId} changed to ${inputValue}`)
             const settingsObject = getLocalStorage();
