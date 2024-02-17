@@ -1,9 +1,8 @@
 /*
 * Script Name: Coordinate List Generator
 * Version: v1.0
-* Last Updated: 2024-02-15
+* Last Updated: 2024-02-17
 * Author: SaveBank
-* Author URL: 
 * Author Contact: Discord: savebank
 * Contributor: RedAlert 
 * Approved: N/A
@@ -86,7 +85,7 @@ var DEFAULT_MAX_PLAYER_POINTS = 99999999;
 var DEFAULT_SEPARATOR = ",";
 var DEFAULT_MIN_DISTANCE = 0;
 var DEFAULT_MAX_DISTANCE = 9999;
-var DEFAULT_FAKES_PER_PLAYER = 0;
+var DEFAULT_FAKES_PER_PLAYER = 100;
 var DEFAULT_MIN_X = 0;
 var DEFAULT_MAX_X = 999;
 var DEFAULT_MIN_Y = 0;
@@ -105,7 +104,7 @@ var scriptConfig = {
         version: 'v1.0',
         author: 'SaveBank',
         authorUrl: 'https://forum.tribalwars.net/index.php?members/savebank.131111/',
-        helpLink: '',
+        helpLink: 'https://forum.tribalwars.net/index.php?threads/coordinate-list-generator.292006/',
     },
     translations: {
         en_DK: {
@@ -159,6 +158,10 @@ var scriptConfig = {
             'No players or tribes selected': 'No players or tribes selected',
             'There was an error while fetching the data!': 'There was an error while fetching the data!',
             'There was an error!': 'There was an error!',
+            'Min Player Points': 'Min Player Points',
+            'Max Player Points': 'Max Player Points',
+            'Min Village Points': 'Min Village Points',
+            'Max Village Points': 'Max Village Points',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
@@ -211,6 +214,10 @@ var scriptConfig = {
             'No players or tribes selected': 'Keine Spieler oder Stämme ausgwählt',
             'There was an error while fetching the data!': 'Es ist ein Fehler beim Abrufen der Daten aufgetreten!',
             'There was an error!': 'Es gab einen Fehler',
+            'Min Player Points': 'Min Spielerpunkte',
+            'Max Player Points': 'Max Spielerpunkte',
+            'Min Village Points': 'Min Dörferpunkte',
+            'Max Village Points': 'Max Dörferpunkte',
         }
     }
     ,
@@ -691,6 +698,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             });
 
             let finalEnemyPlayerIds = [...new Set([...enemyPlayerIds, ...additionalEnemyPlayerIds])];
+            if (enemyPlayerInput.length === 0 && enemyTribesInput.length === 0) {
+                finalEnemyPlayerIds = [0];
+            }
 
             if (DEBUG) console.debug(`${scriptInfo}: Enemy Player Ids found in calculateFrontline(): `, finalEnemyPlayerIds);
 
@@ -982,11 +992,11 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
     </div>
     <div class="ra-mb10 sb-grid sb-grid-5">
         <fieldset>
-            <legend>${twSDK.tt('Min Points')}</legend>
+            <legend>${twSDK.tt('Min Player Points')}</legend>
             <input type="number" id="pl-min-points" value="0"/>
         </fieldset>
         <fieldset>
-            <legend>${twSDK.tt('Max Points')}</legend>
+            <legend>${twSDK.tt('Max Player Points')}</legend>
             <input type="number" id="pl-max-points" value="99999999"/>
         </fieldset>
         <fieldset>
@@ -1056,11 +1066,11 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         </div>
         <div class="ra-mb10 sb-grid sb-grid-25-25-50">
             <fieldset>
-                <legend>${twSDK.tt('Min Points')}</legend>
+                <legend>${twSDK.tt('Min Village Points')}</legend>
                 <input type="number" id="vl-min-points" value="0"/>
             </fieldset>
             <fieldset>
-                <legend>${twSDK.tt('Max Points')}</legend>
+                <legend>${twSDK.tt('Max Village Points')}</legend>
                 <input type="number" id="vl-max-points" value="99999"/>
             </fieldset>
             <fieldset>
@@ -1074,6 +1084,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                         <label for="vl-raw-coordinates">${twSDK.tt('Raw Coordinates?')}</label>
                         <input type="checkbox" id="vl-raw-coordinates" />
                     </div>
+                </div>
             </fieldset>
         </div>
         <div class="ra-mb10">
@@ -1135,11 +1146,11 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     <input type="number" id="fl-max-distance" value="99999"/>
                 </fieldset>
                 <fieldset>
-                    <legend>${twSDK.tt('Min Points')}</legend>
+                    <legend>${twSDK.tt('Min Village Points')}</legend>
                     <input type="number" id="fl-min-points" value="0"/>
                 </fieldset>
                 <fieldset>
-                    <legend>${twSDK.tt('Max Points')}</legend>
+                    <legend>${twSDK.tt('Max Village Points')}</legend>
                     <input type="number" id="fl-max-points" value="99999"/>
                 </fieldset>
                 <fieldset>
@@ -1250,11 +1261,11 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     <input type="number" id="f-max-distance" value="99999"/>
                 </fieldset>
                 <fieldset>
-                    <legend>${twSDK.tt('Min Points')}</legend>
+                    <legend>${twSDK.tt('Min Village Points')}</legend>
                     <input type="number" id="f-min-points" value="0"/>
                 </fieldset>
                 <fieldset>
-                    <legend>${twSDK.tt('Max Points')}</legend>
+                    <legend>${twSDK.tt('Max Village Points')}</legend>
                     <input type="number" id="f-max-points" value="99999"/>
                 </fieldset>
             </div>
@@ -1303,7 +1314,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 </fieldset>
                 <fieldset id="f-image-div" style="display: none;">
                     <legend>${twSDK.tt('Image:')}</legend>
-                    <img id="f-image-display" src="${imageDataUrl}" alt="Image"/>
+                    <img id="f-image-display" src="" alt="Image"/>
                 </fieldset>
             </div>
         `
@@ -1312,11 +1323,6 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         }
 
         function generateCSS() {
-            // Define the colors
-            const borderColor = '#c1a264';
-            const lighterBackground = '#e3d5b3';
-            const darkerBackground = '#c1a264';
-
             // Start building the CSS string
             let css = `
                     .sb-grid-5 {
@@ -1335,7 +1341,11 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                         grid-template-columns: 20% 80%;
                     }
                     .sb-grid-25-25-50 {
-                        grid-template-columns: 25% 25% 50%;
+                        grid-template-columns: calc(25% - 5px) calc(25% - 5px) calc(50% - 10px);
+                    }
+                    .sb-grid {
+                        display: grid;
+                        grid-gap: 10px;
                     }
                     .sb-grid {
                         display: grid;
