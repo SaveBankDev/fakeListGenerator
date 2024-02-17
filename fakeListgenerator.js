@@ -1214,13 +1214,6 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         }
 
         function renderFrontline() {
-            // REMOVE IN LIVE
-            const allyCoordinates = generateRandomCluster(300, 400, 200, 100);
-            const enemyCoordinates = generateRandomCluster(400, 500, 300, 50);
-            const hightlightedVillagesCoordinates = generateRandomCluster(450, 540, 40, 20);
-
-            const imageDataUrl = createImage(allyCoordinates, enemyCoordinates, hightlightedVillagesCoordinates);
-
             const dropdownAllyPlayer = buildDropDown(players, "Players", "f-ally-players");
             const dropdownAllyTribe = buildDropDown(tribes, "Tribes", "f-ally-tribes");
             const dropdownEnemyPlayer = buildDropDown(players, "Players", "f-enemy-players");
@@ -2025,18 +2018,5 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 console.error(`${scriptInfo} Error:`, error);
             }
         }
-        // REMOVE IN LIVE
-        function generateRandomCluster(centerX, centerY, size, range) {
-            const cluster = [];
-
-            for (let i = 0; i < size; i++) {
-                const x = Math.round(centerX + (Math.random() - 0.5) * range);
-                const y = Math.round(centerY + (Math.random() - 0.5) * range);
-                cluster.push([x, y]);
-            }
-
-            return cluster;
-        }
-
     }
 );
