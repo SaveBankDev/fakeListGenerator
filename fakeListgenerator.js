@@ -377,6 +377,13 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             playerInput = playerInput.filter(item => item);
             playersToExclude = playersToExclude.filter(item => item);
 
+            if (playerInput.length === 0 && tribeInput.length === 0) {
+                console.error(`${scriptInfo}: No player or tribes selected`);
+                UI.ErrorMessage("No players or tribes selected");
+                return;
+            }
+
+
             tribeInput.forEach(tribeName => {
                 let tribeId = tribes.find(tribe => tribe[2] === tribeName)[0];
                 players.forEach(player => {
@@ -410,6 +417,8 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the VillageList`);
             const startTime = performance.now();
             resetOutput("villagelist");
+
+
 
             const endTime = performance.now();
             if (DEBUG) console.debug(`Calculation time for calculateVillageList(): ${(endTime - startTime).toFixed(4)} milliseconds`);
