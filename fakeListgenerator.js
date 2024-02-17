@@ -243,7 +243,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         const { tribes, players, villages, worldUnitInfo, worldConfig } = await fetchWorldConfigData();
         const allCoords = villages.map(village => [village[2], village[3]]);
         const endTime = performance.now();
-        if (DEBUG) console.debug(`${scriptInfo}: Startup time: ${(endTime - startTime).toFixed(4)} milliseconds`);
+        if (DEBUG) console.debug(`${scriptInfo}: Startup time: ${(endTime - startTime).toFixed(2)} milliseconds`);
         if (DEBUG) console.debug(`${scriptInfo}: `, tribes);
         if (DEBUG) console.debug(`${scriptInfo}: `, players);
         if (DEBUG) console.debug(`${scriptInfo}: `, villages);
@@ -255,7 +255,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 addEventHandlers();
                 initializeInputFields();
                 const endTime = performance.now();
-                if (DEBUG) console.debug(`${scriptInfo}: Time to initialize: ${(endTime - startTime).toFixed(4)} milliseconds`);
+                if (DEBUG) console.debug(`${scriptInfo}: Time to initialize: ${(endTime - startTime).toFixed(2)} milliseconds`);
             } catch (error) {
                 UI.ErrorMessage(twSDK.tt('There was an error!'));
                 console.error(`${scriptInfo}: Error:`, error);
@@ -295,7 +295,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             );
 
             const endTime = performance.now();
-            if (DEBUG) console.debug(`${scriptInfo}: Time to render: ${(endTime - startTime).toFixed(4)} milliseconds`);
+            if (DEBUG) console.debug(`${scriptInfo}: Time to render: ${(endTime - startTime).toFixed(2)} milliseconds`);
         }
 
         function addEventHandlers() {
@@ -348,7 +348,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             resetOutput("fakelist");
 
             const endTime = performance.now();
-            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculateFakelist(): ${(endTime - startTime).toFixed(4)} milliseconds`);
+            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculateFakelist(): ${(endTime - startTime).toFixed(2)} milliseconds`);
 
         }
 
@@ -357,9 +357,184 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             const startTime = performance.now();
             resetOutput("frontline");
 
-            const endTime = performance.now();
-            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculateFrontline(): ${(endTime - startTime).toFixed(4)} milliseconds`);
+            const localStorageSettings = getLocalStorage();
+            let allyPlayersInput = localStorageSettings["f-ally-players-Players"].split(",");
+            let allyTribesInput = localStorageSettings["f-ally-tribes-Tribes"].split(",");
+            let enemyPlayerInput = localStorageSettings["f-enemy-players-Players"].split(",");
+            let enemyTribesInput = localStorageSettings["f-enemy-tribes-Tribes"].split(",");
+            let minDistance = parseInt(localStorageSettings["f-min-distance"]);
+            let maxDistance = parseInt(localStorageSettings["f-max-distance"]);
+            let minPoints = parseInt(localStorageSettings["f-min-points"]);
+            let maxPoints = parseInt(localStorageSettings["f-max-points"]);
+            let filterVillagesBool = parseBool(localStorageSettings["f-filter-villages"]);
+            let imageBool = parseBool(localStorageSettings["f-image"]);
+            let rawCoordBool = parseBool(localStorageSettings["f-raw-coordinates"]);
+            let allyVillageRadius = parseInt(localStorageSettings["f-ally-village-radius"]);
+            let numberInAllyVillageRadius = parseInt(localStorageSettings["f-number-ally-villages-radius"]);
 
+            let allyPlayerIds = [];
+            let additionalAllyPlayerIds = [];
+
+            let enemyPlayerIds = [];
+            let additionalEnemyPlayerIds = [];
+
+            allyPlayersInput = allyPlayersInput.filter(item => item);
+            allyTribesInput = allyTribesInput.filter(item => item);
+
+            enemyPlayerInput = enemyPlayerInput.filter(item => item);
+            enemyTribesInput = enemyTribesInput.filter(item => item);
+
+
+            // Ally ids
+            allyTribesInput.forEach(tribeName => {
+                let tribe = tribes.find(tribe => tribe[2] === tribeName);
+                if (!tribe) {
+                    console.warn(`${scriptInfo}: Tribe named ${tribeName} does not exist.`);
+                    return;
+                }
+                let tribeId = tribe[0];
+                players.forEach(player => {
+                    if (player[2] === tribeId) {
+                        allyPlayerIds.push(player[0]);
+                    }
+                });
+            });
+
+            allyPlayersInput.forEach(inputName => {
+                let playerExists = players.find(player => player[1] === inputName);
+                if (playerExists) {
+                    additionalAllyPlayerIds.push(playerExists[0]);
+                }
+            });
+
+            let finalAllyPlayerIds = [...new Set([...allyPlayerIds, ...additionalAllyPlayerIds])];
+
+            if (DEBUG) console.debug(`${scriptInfo}: Ally Player Ids found in calculateFrontline(): `, finalAllyPlayerIds);
+
+            // Enemy ids 
+            enemyTribesInput.forEach(tribeName => {
+                let tribe = tribes.find(tribe => tribe[2] === tribeName);
+                if (!tribe) {
+                    console.warn(`${scriptInfo}: Tribe named ${tribeName} does not exist.`);
+                    return;
+                }
+                let tribeId = tribe[0];
+                players.forEach(player => {
+                    if (player[2] === tribeId) {
+                        enemyPlayerIds.push(player[0]);
+                    }
+                });
+            });
+
+            enemyPlayerInput.forEach(inputName => {
+                let playerExists = players.find(player => player[1] === inputName);
+                if (playerExists) {
+                    additionalEnemyPlayerIds.push(playerExists[0]);
+                }
+            });
+
+            let finalEnemyPlayerIds = [...new Set([...enemyPlayerIds, ...additionalEnemyPlayerIds])];
+
+            if (DEBUG) console.debug(`${scriptInfo}: Enemy Player Ids found in calculateFrontline(): `, finalEnemyPlayerIds);
+
+            // Ally coordinates
+            let allyCoordinates = villages
+                .filter(village => finalAllyPlayerIds.includes(village[4]) &&
+                    village[5] >= minPoints &&
+                    village[5] <= maxPoints)
+                .map(village => [village[2], village[3]]);
+
+            if (DEBUG) console.debug(`${scriptInfo}: Ally Coordinates found in calculateFrontline(): `, allyCoordinates);
+            // Enemy coordinates
+            let enemyCoordinates = villages
+                .filter(village => finalEnemyPlayerIds.includes(village[4]) &&
+                    village[5] >= minPoints &&
+                    village[5] <= maxPoints)
+                .map(village => [village[2], village[3]]);
+
+            if (DEBUG) console.debug(`${scriptInfo}: Enemy Coordinates found in calculateFrontline(): `, enemyCoordinates);
+            // Filter ally coordinates
+            let filteredAllyCoordinates = [];
+            if (filterVillagesBool) {
+                for (let i = 0; i < allyCoordinates.length; i++) {
+                    let centralVillage = allyCoordinates[i];
+                    let nearbyVillages = 0;
+                    for (let j = 0; j < allyCoordinates.length; j++) {
+                        if (i === j) continue;
+                        let compareVillage = allyCoordinates[j];
+                        let distance = Math.sqrt(Math.pow(compareVillage[0] - centralVillage[0], 2) + Math.pow(compareVillage[1] - centralVillage[1], 2));
+                        if (distance <= allyVillageRadius) nearbyVillages++;
+                        if (nearbyVillages >= numberInAllyVillageRadius) break;
+                    }
+                    if (nearbyVillages >= numberInAllyVillageRadius) {
+                        filteredAllyCoordinates.push(centralVillage);
+                    }
+                }
+            } else {
+                filteredAllyCoordinates = allyCoordinates;
+            }
+            if (DEBUG) console.debug(`${scriptInfo}: Filtered Ally Coordinates in calculateFrontline(): `, filteredAllyCoordinates);
+            // Filter enemy coordinates
+            let filteredEnemyCoordinates = [];
+            if (minDistance > 0) {
+                enemyCoordinates.forEach(enemyCoordinate => {
+                    let isTooClose = false;
+                    for (let filteredAllyCoordinate of filteredAllyCoordinates) {
+                        let distance = Math.sqrt(Math.pow(enemyCoordinate[0] - filteredAllyCoordinate[0], 2) +
+                            Math.pow(enemyCoordinate[1] - filteredAllyCoordinate[1], 2));
+                        if (distance < minDistance) {
+                            isTooClose = true;
+                            break;
+                        }
+                    }
+                    if (!isTooClose) {
+                        filteredEnemyCoordinates.push(enemyCoordinate);
+                    }
+                });
+            } else {
+                filteredEnemyCoordinates = enemyCoordinates;
+            }
+            if (DEBUG) console.debug(`${scriptInfo}: Filtered Enemy Coordinates in calculateFrontline(): `, filteredEnemyCoordinates);
+            let finalEnemyCoordinates = [];
+
+            filteredEnemyCoordinates.forEach(enemyCoordinate => {
+                for (let filteredAllyCoordinate of filteredAllyCoordinates) {
+                    let distance = Math.sqrt(Math.pow(enemyCoordinate[0] - filteredAllyCoordinate[0], 2) +
+                        Math.pow(enemyCoordinate[1] - filteredAllyCoordinate[1], 2));
+
+                    if (distance >= minDistance && distance <= maxDistance) {
+                        finalEnemyCoordinates.push(enemyCoordinate);
+                        break;
+                    }
+                }
+            });
+            if (DEBUG) console.debug(`${scriptInfo}: Highlighted/Result Coordinates in calculateFrontline(): `, finalEnemyCoordinates);
+            let output = "";
+
+            if (rawCoordBool) {
+                finalEnemyCoordinates.forEach(([x, y]) => {
+                    output += `${x}|${y} `;  // '234|222 '
+                });
+            } else {
+                finalEnemyCoordinates.forEach(([x, y], index) => {
+                    output += `${index + 1}. ${x}|${y}\n`;  // '3. 234|222'
+                });
+            }
+            output = output.trimEnd();
+            $('#f-frontline-display').val(output);
+
+            let imageURL;
+
+            if (imageBool) {
+                imageURL = createImage(finalEnemyCoordinates, allyCoordinates, enemyCoordinates);
+                $(`#f-image-display`).attr('src', imageURL);
+                $(`#f-image-div`).show();
+            }
+
+            $(`#frontline-result`).show();
+
+            const endTime = performance.now();
+            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculateFrontline(): ${(endTime - startTime).toFixed(2)} milliseconds`);
         }
 
 
@@ -422,7 +597,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             $('#pl-player-list-display').val(playerNamesString);
             $(`#player-list-result`).show();
             const endTime = performance.now();
-            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculatePlayerList(): ${(endTime - startTime).toFixed(4)} milliseconds`);
+            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculatePlayerList(): ${(endTime - startTime).toFixed(2)} milliseconds`);
         }
 
         function calculateVillageList() {
@@ -512,7 +687,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
             $(`#village-list-result`).show();
             const endTime = performance.now();
-            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculateVillageList(): ${(endTime - startTime).toFixed(4)} milliseconds`);
+            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculateVillageList(): ${(endTime - startTime).toFixed(2)} milliseconds`);
 
         }
 
