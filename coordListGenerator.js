@@ -1,5 +1,5 @@
 /*
-* Script Name: Fakelist Generator
+* Script Name: Coordinate List Generator
 * Version: v1.0
 * Last Updated: 2024-02-15
 * Author: SaveBank
@@ -100,8 +100,8 @@ var DEFAULT_NUMBER_IN_RADIUS = 12;
 
 var scriptConfig = {
     scriptData: {
-        prefix: 'sbFLG',
-        name: 'Fakelist Generator',
+        prefix: 'sbCLG',
+        name: 'Coordinate List Generator',
         version: 'v1.0',
         author: 'SaveBank',
         authorUrl: 'https://forum.tribalwars.net/index.php?members/savebank.131111/',
@@ -111,7 +111,7 @@ var scriptConfig = {
         en_DK: {
             'Redirecting...': 'Redirecting...',
             Help: 'Help',
-            'Fakelist Generator': 'Fakelist Generator',
+            'Coordinate List Generator': 'Coordinate List Generator',
             'Allied Players (Separate with \',\')': 'Allied Players<br>(Separate with \',\')',
             'Allied Tribes (Separate with \',\')': 'Allied Tribes<br>(Separate with \',\')',
             'Enemy Players (Separate with \',\')': 'Enemy Players<br>(Separate with \',\')',
@@ -163,7 +163,7 @@ var scriptConfig = {
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
             Help: 'Hilfe',
-            'Fakelist Generator': 'Fakelisten Generator',
+            'Coordinate List Generator': 'Koordinatenlisten Generator',
             'Allied Players (Separate with \',\')': 'Verbündete Spieler<br>(Getrennt durch \',\')',
             'Allied Tribes (Separate with \',\')': 'Verbündete Stämme<br>(Getrennt durch \',\')',
             'Enemy Players (Separate with \',\')': 'Feindliche Spieler<br>(Getrennt durch \',\')',
@@ -241,7 +241,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             twSDK.redirectTo('overview_villages&combined');
             return;
         }
-        const { tribes, players, villages, worldUnitInfo, worldConfig } = await fetchWorldConfigData();
+        const { tribes, players, villages } = await fetchWorldConfigData();
         const allCoords = villages.map(village => [village[2], village[3]]);
         const endTime = performance.now();
         if (DEBUG) console.debug(`${scriptInfo}: Startup time: ${(endTime - startTime).toFixed(2)} milliseconds`);
@@ -1925,7 +1925,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         }
         // Service: Function to get settings from localStorage
         function getLocalStorage() {
-            const localStorageSettings = localStorage.getItem('sbFakelistGenerator');
+            const localStorageSettings = localStorage.getItem('sbCoordinateListGenerator');
 
             if (localStorageSettings) {
                 // If settings exist in localStorage, parse and return the object
@@ -1999,18 +1999,16 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         //Service: Function to save settings to localStorage
         function saveLocalStorage(settingsObject) {
             // Stringify and save the settings object
-            localStorage.setItem('sbFakelistGenerator', JSON.stringify(settingsObject));
+            localStorage.setItem('sbCoordinateListGenerator', JSON.stringify(settingsObject));
         }
 
         // Service: Fetch world config and needed data
         async function fetchWorldConfigData() {
             try {
-                const worldUnitInfo = await twSDK.getWorldUnitInfo();
                 const villages = await twSDK.worldDataAPI('village');
                 const players = await twSDK.worldDataAPI('player');
                 const tribes = await twSDK.worldDataAPI('ally');
-                const worldConfig = await twSDK.getWorldConfig();
-                return { tribes, players, villages, worldUnitInfo, worldConfig };
+                return { tribes, players, villages };
             } catch (error) {
                 UI.ErrorMessage(
                     twSDK.tt('There was an error while fetching the data!')
