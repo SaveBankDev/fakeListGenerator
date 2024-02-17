@@ -5,9 +5,9 @@
 * Author: SaveBank
 * Author Contact: Discord: savebank
 * Contributor: RedAlert 
-* Approved: N/A
-* Approved Date: N/A
-* Mod: N/A
+* Approved: Yes
+* Approved Date: 2024-02-17
+* Mod: RedAlert
 */
 
 
