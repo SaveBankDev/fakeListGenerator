@@ -71,6 +71,13 @@ const allIds = [
     "f-ally-village-radius",
     "f-number-ally-villages-radius",
 ];
+const buttonIDs = [
+    "copy-f-frontline-display",
+    "copy-fl-target-coordinates-display",
+    "copy-fakelist-display",
+    "copy-vl-coordinates-display",
+    "copy-pl-player-list-display"
+];
 const DEFAULT_MIN_VILLAGE_POINTS = 0;
 const DEFAULT_MAX_VILLAGE_POINTS = 99999;
 const DEFAULT_MIN_PLAYER_POINTS = 0;
@@ -309,6 +316,18 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             $('#calculate-frontline').on('click', function () {
                 calculateFrontline();
             });
+            buttonIDs.forEach(function (btnId) {
+                $('#' + btnId).on('click', function () {
+                    let textAreaId = btnId.replace('copy-', '');
+                    let textareaContent = $('#' + textAreaId).val();
+                    if (DEBUG) console.debug(`${scriptInfo}: Copied ${textareaContent} from ${textAreaId}`);
+                    navigator.clipboard.writeText(textareaContent).then(function () {
+                        console.log('Copying to clipboard was successful!');
+                    }, function (err) {
+                        console.error('Error occurred copying to clipboard: ', err);
+                    });
+                });
+            });
             $(document).ready(function () {
                 allIds.forEach(function (id) {
                     $('#' + id).on('change', handleInputChange);
@@ -318,17 +337,29 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
         function calculateFakelist() {
             if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the Fakelist`);
+            const startTime = performance.now();
+            resetOutput("fakelist");
+
+            const endTime = performance.now();
+            if (DEBUG) console.debug(`Calculation time for calculateFakelist(): ${(endTime - startTime).toFixed(4)} milliseconds`);
 
         }
 
         function calculateFrontline() {
             if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the Frontline`);
+            const startTime = performance.now();
+            resetOutput("frontline");
+
+            const endTime = performance.now();
+            if (DEBUG) console.debug(`Calculation time for calculateFrontline(): ${(endTime - startTime).toFixed(4)} milliseconds`);
 
         }
 
 
         function calculatePlayerList() {
             if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the PlayerList`);
+            const startTime = performance.now();
+            resetOutput("playerlist");
 
             const localStorageSettings = getLocalStorage();
             let tribeInput = localStorageSettings["pl-tribes-Tribes"].split(",");
@@ -341,6 +372,10 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             let separator = localStorageSettings["pl-separator"];
             let playerNames = [];
             let additionalPlayerNames = [];
+
+            tribeInput = tribeInput.filter(item => item);
+            playerInput = playerInput.filter(item => item);
+            playersToExclude = playersToExclude.filter(item => item);
 
             tribeInput.forEach(tribeName => {
                 let tribeId = tribes.find(tribe => tribe[2] === tribeName)[0];
@@ -367,10 +402,17 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             let playerNamesString = finalPlayerNames.join(separator);
             $('#pl-player-list-display').val(playerNamesString);
             $(`#player-list-result`).show();
+            const endTime = performance.now();
+            if (DEBUG) console.debug(`Calculation time for calculatePlayerList(): ${(endTime - startTime).toFixed(4)} milliseconds`);
         }
 
         function calculateVillageList() {
             if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the VillageList`);
+            const startTime = performance.now();
+            resetOutput("villagelist");
+
+            const endTime = performance.now();
+            if (DEBUG) console.debug(`Calculation time for calculateVillageList(): ${(endTime - startTime).toFixed(4)} milliseconds`);
 
         }
 
@@ -521,7 +563,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 <textarea readonly id="vl-coordinates-display" class="result-text"></textarea>
                 ${copyButtonVillageList}
             </fieldset>
-            <fieldset id="vl-image-div">
+            <fieldset id="vl-image-div" style="display: none;">
                 <legend>${twSDK.tt('Image:')}</legend>
                 <img id="vl-image-display" src="${imageDataUrl}" alt="Image"/>
             </fieldset>
@@ -639,12 +681,12 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     <textarea readonly id="fl-fakelist-display" class="result-text"></textarea>
                     ${copyButtonFakelist}
                 </fieldset>
-                <fieldset>
+                <fieldset id="fl-target-coordinates-div" style="display: none;">
                     <legend>${twSDK.tt('Target Coordinates:')}</legend>
                     <textarea readonly id="fl-target-coordinates-display" class="result-text"></textarea>
                     ${copyButtonTargetCoordinates}
                 </fieldset>
-                <fieldset id="fl-image-div">
+                <fieldset id="fl-image-div" style="display: none;">
                     <legend>${twSDK.tt('Image:')}</legend>
                     <img id="fl-image-display" src="${imageDataUrl}" alt="Image"/>
                 </fieldset>
@@ -749,7 +791,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     <textarea readonly id="f-frontline-display" class="result-text"></textarea>
                     ${copyButtonFrontline}
                 </fieldset>
-                <fieldset id="f-image-div">
+                <fieldset id="f-image-div" style="display: none;">
                     <legend>${twSDK.tt('Image:')}</legend>
                     <img id="f-image-display" src="${imageDataUrl}" alt="Image"/>
                 </fieldset>
@@ -985,11 +1027,47 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         }
         function generateCopyButton(id) {
             return `
-                <button id="copy-${id} onclick="" class="btn">
+                <button id="copy-${id}" onclick="" class="btn">
                     ${twSDK.tt('Copy')}
                 </button>
             `;
         }
+
+        function resetOutput(input) {
+            switch (input) {
+                case 'fakelist':
+                    if (DEBUG) console.debug(`${scriptInfo}: Reset output for ${input}`);
+                    $(`#fakelist-result`).hide();
+                    $(`#fl-fakelist-display`).val("");
+                    $(`#fl-target-coordinates-div`).hide();
+                    $(`#fl-target-coordinates-display`).val("");
+                    $(`#fl-image-div`).hide();
+                    $(`#fl-image-display`).attr('src', "");
+                    break;
+                case 'villagelist':
+                    if (DEBUG) console.debug(`${scriptInfo}: Reset output for ${input}`);
+                    $(`#village-list-result`).hide();
+                    $(`#vl-coordinates-display`).val("");
+                    $(`#vl-image-div`).hide();
+                    $(`#vl-image-display`).attr('src', "");
+                    break;
+                case 'playerlist':
+                    if (DEBUG) console.debug(`${scriptInfo}: Reset output for ${input}`);
+                    $(`#player-list-result`).hide();
+                    $(`#pl-player-list-display`).val("");
+                    break;
+                case 'frontline':
+                    if (DEBUG) console.debug(`${scriptInfo}: Reset output for ${input}`);
+                    $(`#frontline-result`).hide();
+                    $(`#f-frontline-display`).val("");
+                    $(`#f-image-div`).hide();
+                    $(`#f-image-display`).attr('src', "");
+                    break;
+                default:
+                    console.error(`${scriptInfo}: Can't reset output for ${input}`);
+            }
+        }
+
         function initializeInputFields() {
             const settingsObject = getLocalStorage();
             if (DEBUG) console.debug(settingsObject);
@@ -1007,7 +1085,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     } else if (element) {
                         element.value = settingsObject[id];
                     } else {
-                        console.error(`Element not found for ID: ${id} in ${settingsObject}`);
+                        console.error(`${scriptInfo}: Element not found for ID: ${id} in ${settingsObject}`);
                     }
                 }
             }
