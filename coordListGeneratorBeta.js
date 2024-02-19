@@ -674,6 +674,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     });
                 }
                 output_targets = output_targets.trimEnd();
+                $('#fl-result-coordinates-legend').text(twSDK.tt('Target Coordinates:') + ' ' + finalEnemyCoordinates.length);
                 $('#fl-target-coordinates-display').val(output_targets);
                 $(`#fl-target-coordinates-div`).show();
             }
@@ -876,6 +877,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             }
             output = output.trimEnd();
             $('#f-frontline-display').val(output);
+            $('#f-result-legend').text(twSDK.tt('Frontline Coordinates:') + ' ' + finalEnemyCoordinates.length);
 
             if (imageBool) {
                 let imageURL = createImage(finalEnemyCoordinates, allyCoordinates, enemyCoordinates);
@@ -947,6 +949,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
             let playerNamesString = finalPlayerNames.join(separator);
             $('#pl-player-list-display').val(playerNamesString);
+            $(`#pl-result-legend`).text(twSDK.tt('Players:') + ' ' + finalPlayerNames.length);
             $(`#player-list-result`).show();
             const endTime = performance.now();
             if (DEBUG) console.debug(`${scriptInfo}: Calculation time for calculatePlayerList(): ${(endTime - startTime).toFixed(2)} milliseconds`);
@@ -1028,6 +1031,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             }
             output = output.trimEnd();
             $('#vl-coordinates-display').val(output);
+            $(`#vl-result-legend`).text(twSDK.tt('Target Coordinates:') + ' ' + coordinates.length);
 
             let imageURL;
 
@@ -1106,7 +1110,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
     </div>
     <div id="player-list-result" style="display: none;">
         <fieldset>
-            <legend>${twSDK.tt('Players:')}</legend>
+            <legend id="pl-result-legend">${twSDK.tt('Players:')}</legend>
             <textarea readonly id="pl-player-list-display" class="result-text"></textarea>
             ${copyButtonPlayerList}
         </fieldset>
@@ -1181,7 +1185,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         </div>
         <div id="village-list-result" style="display: none;">
             <fieldset>
-                <legend>${twSDK.tt('Coordinates:')}</legend>
+                <legend id="vl-result-legend">${twSDK.tt('Coordinates:')}</legend>
                 <textarea readonly id="vl-coordinates-display" class="result-text"></textarea>
                 ${copyButtonVillageList}
             </fieldset>
@@ -1312,7 +1316,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     ${copyButtonFakelist}
                 </fieldset>
                 <fieldset id="fl-target-coordinates-div" style="display: none;">
-                    <legend>${twSDK.tt('Target Coordinates:')}</legend>
+                    <legend id="fl-result-coordinates-legend">${twSDK.tt('Target Coordinates:')}</legend>
                     <textarea readonly id="fl-target-coordinates-display" class="result-text"></textarea>
                     ${copyButtonTargetCoordinates}
                 </fieldset>
@@ -1410,7 +1414,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             </div>
             <div id="frontline-result" style="display: none;">
                 <fieldset>
-                    <legend>${twSDK.tt('Frontline Coordinates:')}</legend>
+                    <legend id="f-result-legend">${twSDK.tt('Frontline Coordinates:')}</legend>
                     <textarea readonly id="f-frontline-display" class="result-text"></textarea>
                     ${copyButtonFrontline}
                 </fieldset>
@@ -1683,6 +1687,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             switch (input) {
                 case 'fakelist':
                     if (DEBUG) console.debug(`${scriptInfo}: Reset output for ${input}`);
+                    $(`#fl-result-coordinates-legend`).text(twSDK.tt('Target Coordinates:'));
                     $(`#fakelist-result`).hide();
                     $(`#fl-fakelist-display`).val("");
                     $(`#fl-target-coordinates-div`).hide();
@@ -1692,6 +1697,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     break;
                 case 'villagelist':
                     if (DEBUG) console.debug(`${scriptInfo}: Reset output for ${input}`);
+                    $(`#vl-result-legend`).text(twSDK.tt('Coordinates:'));
                     $(`#village-list-result`).hide();
                     $(`#vl-coordinates-display`).val("");
                     $(`#vl-image-div`).hide();
@@ -1699,11 +1705,13 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     break;
                 case 'playerlist':
                     if (DEBUG) console.debug(`${scriptInfo}: Reset output for ${input}`);
+                    $(`#pl-result-legend`).text(twSDK.tt('Players:'));
                     $(`#player-list-result`).hide();
                     $(`#pl-player-list-display`).val("");
                     break;
                 case 'frontline':
                     if (DEBUG) console.debug(`${scriptInfo}: Reset output for ${input}`);
+                    $(`#f-result-legend`).text(twSDK.tt('Frontline Coordinates:'));
                     $(`#frontline-result`).hide();
                     $(`#f-frontline-display`).val("");
                     $(`#f-image-div`).hide();
