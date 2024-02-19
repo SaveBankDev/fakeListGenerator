@@ -1,7 +1,7 @@
 /*
 * Script Name: Coordinate List Generator
 * Version: v1.0
-* Last Updated: 2024-02-17
+* Last Updated: 2024-02-19
 * Author: SaveBank
 * Author Contact: Discord: savebank
 * Contributor: RedAlert 
@@ -162,6 +162,7 @@ var scriptConfig = {
             'Max Player Points': 'Max Player Points',
             'Min Village Points': 'Min Village Points',
             'Max Village Points': 'Max Village Points',
+            'Calculating': 'Calculating',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
@@ -218,6 +219,7 @@ var scriptConfig = {
             'Max Player Points': 'Max Spielerpunkte',
             'Min Village Points': 'Min Dörferpunkte',
             'Max Village Points': 'Max Dörferpunkte',
+            'Calculating': 'Berechne',
         }
     }
     ,
@@ -353,6 +355,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         function calculateFakelist() {
             if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the Fakelist`);
             const startTime = performance.now();
+            const UIUpdateStartTime = date.now();
+            const UIUpdateCounter = 0;
+            const UIUpdateTimer = 1000;
             resetOutput("fakelist");
 
             const localStorageSettings = getLocalStorage();
@@ -458,6 +463,11 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             let filteredAllyCoordinates = [];
             if (filterVillagesBool) {
                 for (let i = 0; i < allyCoordinates.length; i++) {
+                    if ((date.now() - UIUpdateStartTime) > UIUpdateTimer) {
+                        UIUpdateTimer += 1000;
+                        UI.InfoMessage(twSDK.tt('Calculating') + '.'.repeat(UIUpdateCounter % 3), 1);
+                        UIUpdateCounter++;
+                    }
                     let centralVillage = allyCoordinates[i];
                     let nearbyVillages = 0;
                     for (let j = 0; j < allyCoordinates.length; j++) {
@@ -479,6 +489,11 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             let filteredEnemyCoordinates = [];
             if (minDistance > 0) {
                 enemyCoordinates.forEach(enemyCoordinate => {
+                    if ((date.now() - UIUpdateStartTime) > UIUpdateTimer) {
+                        UIUpdateTimer += 1000;
+                        UI.InfoMessage(twSDK.tt('Calculating') + '.'.repeat(UIUpdateCounter % 3), 1);
+                        UIUpdateCounter++;
+                    }
                     let isTooClose = false;
                     for (let filteredAllyCoordinate of filteredAllyCoordinates) {
                         let distance = Math.sqrt(Math.pow(enemyCoordinate[0] - filteredAllyCoordinate[0], 2) +
@@ -499,6 +514,11 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             let finalEnemyCoordinates = [];
 
             filteredEnemyCoordinates.forEach(enemyCoordinate => {
+                if ((date.now() - UIUpdateStartTime) > UIUpdateTimer) {
+                    UIUpdateTimer += 1000;
+                    UI.InfoMessage(twSDK.tt('Calculating') + '.'.repeat(UIUpdateCounter % 3), 1);
+                    UIUpdateCounter++;
+                }
                 for (let filteredAllyCoordinate of filteredAllyCoordinates) {
                     let distance = Math.sqrt(Math.pow(enemyCoordinate[0] - filteredAllyCoordinate[0], 2) +
                         Math.pow(enemyCoordinate[1] - filteredAllyCoordinate[1], 2));
@@ -619,8 +639,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         function calculateFrontline() {
             if (DEBUG) console.debug(`${scriptInfo}: Started calculation for the Frontline`);
             const startTime = performance.now();
-            const performanceCounter = 0;
-            const performanceTimer = 1500;
+            const UIUpdateStartTime = date.now();
+            const UIUpdateCounter = 0;
+            const UIUpdateTimer = 1000;
             resetOutput("frontline");
 
             const localStorageSettings = getLocalStorage();
@@ -727,10 +748,10 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             let filteredAllyCoordinates = [];
             if (filterVillagesBool) {
                 for (let i = 0; i < allyCoordinates.length; i++) {
-                    if ((endTime - startTime) > performanceTimer) {
-                        performanceTimer += 1000;
-                        UI.InfoMessage(twSDK.tt('Calculating') + '.'.repeat(performanceCounter % 3));
-                        performanceCounter++;
+                    if ((date.now() - UIUpdateStartTime) > UIUpdateTimer) {
+                        UIUpdateTimer += 1000;
+                        UI.InfoMessage(twSDK.tt('Calculating') + '.'.repeat(UIUpdateCounter % 3), 1);
+                        UIUpdateCounter++;
                     }
                     let centralVillage = allyCoordinates[i];
                     let nearbyVillages = 0;
@@ -754,10 +775,10 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             let filteredEnemyCoordinates = [];
             if (minDistance > 0) {
                 enemyCoordinates.forEach(enemyCoordinate => {
-                    if ((endTime - startTime) > performanceTimer) {
-                        performanceTimer += 1000;
-                        UI.InfoMessage(twSDK.tt('Calculating') + '.'.repeat(performanceCounter % 3));
-                        performanceCounter++;
+                    if ((date.now() - UIUpdateStartTime) > UIUpdateTimer) {
+                        UIUpdateTimer += 1000;
+                        UI.InfoMessage(twSDK.tt('Calculating') + '.'.repeat(UIUpdateCounter % 3), 1);
+                        UIUpdateCounter++;
                     }
                     let isTooClose = false;
                     for (let filteredAllyCoordinate of filteredAllyCoordinates) {
@@ -780,10 +801,10 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             let finalEnemyCoordinates = [];
 
             filteredEnemyCoordinates.forEach(enemyCoordinate => {
-                if ((endTime - startTime) > performanceTimer) {
-                    performanceTimer += 1000;
-                    UI.InfoMessage(twSDK.tt('Calculating') + '.'.repeat(performanceCounter % 3));
-                    performanceCounter++;
+                if ((date.now() - UIUpdateStartTime) > UIUpdateTimer) {
+                    UIUpdateTimer += 1000;
+                    UI.InfoMessage(twSDK.tt('Calculating') + '.'.repeat(UIUpdateCounter % 3), 1);
+                    UIUpdateCounter++;
                 }
                 for (let filteredAllyCoordinate of filteredAllyCoordinates) {
                     let distance = Math.sqrt(Math.pow(enemyCoordinate[0] - filteredAllyCoordinate[0], 2) +
