@@ -287,13 +287,16 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             const playerListContent = renderPlayerList();
             const frontlineContent = renderFrontline();
             let content = `
-            <div id="menu" class="sb-grid sb-grid-2">
+            <div id="menu" class="sb-grid sb-grid-5">
                 <div>
                     ${menuContent}
                 </div>
                 <div class="ra-tac">
                     <button id="resetInput" class="" >${twSDK.tt('Reset Input')}</button>
                 </div>
+                <div> </div>
+                <div> </div>
+                <div> </div>
             </div>
             <div id="fakelist">
                 ${fakelistContent}
@@ -1549,7 +1552,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     }
                     #resetInput {
                         padding: 8px;
-                        font-size: 11.5px;
+                        font-size: 13px;
                         color: white;
                         font-weight: bold;
                         background: #af281d;
