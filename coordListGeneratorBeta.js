@@ -1,6 +1,6 @@
 /*
 * Script Name: Coordinate List Generator
-* Version: v1.0
+* Version: v1.1
 * Last Updated: 2024-02-19
 * Author: SaveBank
 * Author Contact: Discord: savebank
@@ -39,6 +39,8 @@ var allIds = [
     "vl-raw-coordinates",
 
     // Fakelist
+    "fl-recipient-players-Players",
+    "fl-recipient-tribes-Tribes",
     "fl-ally-players-Players",
     "fl-ally-tribes-Tribes",
     "fl-enemy-players-Players",
@@ -101,7 +103,7 @@ var scriptConfig = {
     scriptData: {
         prefix: 'sbCLG',
         name: 'Coordinate List Generator',
-        version: 'v1.0',
+        version: 'v1.1',
         author: 'SaveBank',
         authorUrl: 'https://forum.tribalwars.net/index.php?members/savebank.131111/',
         helpLink: 'https://forum.tribalwars.net/index.php?threads/coordinate-list-generator.292006/',
@@ -163,6 +165,8 @@ var scriptConfig = {
             'Min Village Points': 'Min Village Points',
             'Max Village Points': 'Max Village Points',
             'Calculating for': 'Calculating for',
+            'Fakelist Recipients:': 'Fakelist Recipients:',
+            'Reset Input': 'Reset Input',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
@@ -220,6 +224,8 @@ var scriptConfig = {
             'Min Village Points': 'Min Dörferpunkte',
             'Max Village Points': 'Max Dörferpunkte',
             'Calculating for': 'Berechne seit',
+            'Fakelist Recipients:': 'Fakelisten Empfänger:',
+            'Reset Input': 'Eingaben zurücksetzen',
         }
     }
     ,
@@ -281,8 +287,13 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             const playerListContent = renderPlayerList();
             const frontlineContent = renderFrontline();
             let content = `
-            <div id="menu">
-                ${menuContent}
+            <div id="menu" class="sb-grid sb-grid-2">
+                <div>
+                    ${menuContent}
+                </div>
+                <div class="ra-tac">
+                    <button id="resetInput" class="" >${twSDK.tt('Reset Input')}</button>
+                </div>
             </div>
             <div id="fakelist">
                 ${fakelistContent}
@@ -318,6 +329,12 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 saveLocalStorage(localStorageSettings);
                 if (DEBUG) console.debug(`${scriptInfo}: selection-menu changed to ${selectedValue}`);
             });
+
+            $('#resetInput').on('click', function () {
+                const localStorageSettings = getLocalStorage();
+                resetInputFields(localStorageSettings['selection-menu']);
+            });
+
             $('#calculate-player-list').on('click', function () {
                 calculatePlayerList();
             });
@@ -333,6 +350,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             $('#calculate-frontline').on('click', function () {
                 calculateFrontline();
             });
+
             buttonIDs.forEach(function (btnId) {
                 $('#' + btnId).on('click', function () {
                     let textAreaId = btnId.replace('copy-', '');
@@ -345,6 +363,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     });
                 });
             });
+
             $(document).ready(function () {
                 allIds.forEach(function (id) {
                     $('#' + id).on('change', handleInputChange);
@@ -361,6 +380,8 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             resetOutput("fakelist");
 
             const localStorageSettings = getLocalStorage();
+            let recipientPlayersInput = localStorageSettings["fl-recipient-players-Players"].split(",");
+            let recipientTribesInput = localStorageSettings["fl-recipient-tribes-Tribes"].split(",");
             let allyPlayersInput = localStorageSettings["fl-ally-players-Players"].split(",");
             let allyTribesInput = localStorageSettings["fl-ally-tribes-Tribes"].split(",");
             let enemyPlayerInput = localStorageSettings["fl-enemy-players-Players"].split(",");
@@ -528,17 +549,45 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             });
             if (DEBUG) console.debug(`${scriptInfo}: Highlighted/Result Coordinates in calculateFakelist(): `, finalEnemyCoordinates);
 
-            let finalAllyPlayerIdsSet = new Set(finalAllyPlayerIds);
-            let finalAllyPlayerNames = players
-                .filter(player => finalAllyPlayerIdsSet.has(player[0]))
+            // Recipient ids
+            let recipientPlayerIds = [];
+            let additionalRecipientPlayerIds = [];
+
+            recipientTribesInput.forEach(tribeName => {
+                let tribe = tribes.find(tribe => tribe[2] === tribeName);
+                if (!tribe) {
+                    console.warn(`${scriptInfo}: Tribe named ${tribeName} does not exist.`);
+                    return;
+                }
+                let tribeId = tribe[0];
+                players.forEach(player => {
+                    if (player[2] === tribeId) {
+                        recipientPlayerIds.push(player[0]);
+                    }
+                });
+            });
+
+            recipientPlayersInput.forEach(inputName => {
+                let playerExists = players.find(player => player[1] === inputName);
+                if (playerExists) {
+                    additionalRecipientPlayerIds.push(playerExists[0]);
+                }
+            });
+
+            let finalRecipientPlayerIds = [...new Set([...recipientPlayerIds, ...additionalRecipientPlayerIds])];
+            if (DEBUG) console.debug(`${scriptInfo}: Recipient Player Ids found in calculateFakelist(): `, finalRecipientPlayerIds);
+
+            let finalRecipientPlayerIdsSet = new Set(finalRecipientPlayerIds);
+            let finalRecipientPlayerNames = players
+                .filter(player => finalRecipientPlayerIdsSet.has(player[0]))
                 .map(player => player[1]);
 
-            if (DEBUG) console.debug(`${scriptInfo}: All ally playernames in calculateFakelist(): `, finalAllyPlayerNames);
+            if (DEBUG) console.debug(`${scriptInfo}: Recipient playernames in calculateFakelist(): `, finalRecipientPlayerNames);
 
             let fakeListAssignments = {};
             let localFinalEnemyCoordinates = [...finalEnemyCoordinates];
 
-            finalAllyPlayerNames.forEach(player => {
+            finalRecipientPlayerNames.forEach(player => {
                 fakeListAssignments[player] = [];
 
                 for (let i = 0; i < fakesPerPlayer; i++) {
@@ -1144,6 +1193,8 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         }
 
         function renderFakelist() {
+            const dropdownRecipientPlayer = buildDropDown(players, "Players", "fl-recipient-players");
+            const dropdownRecipientTribe = buildDropDown(tribes, "Tribes", "fl-recipient-tribes");
             const dropdownAllyPlayer = buildDropDown(players, "Players", "fl-ally-players");
             const dropdownAllyTribe = buildDropDown(tribes, "Tribes", "fl-ally-tribes");
             const dropdownEnemyPlayer = buildDropDown(players, "Players", "fl-enemy-players");
@@ -1153,6 +1204,19 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             // Start building the HTML string
             let html =
                 `
+            <div class="ra-mb10">
+                <fieldset class="sb-grid sb-grid-2">
+                    <legend>${twSDK.tt('Fakelist Recipients:')}</legend>
+                    <fieldset>
+                        <legend>${twSDK.tt('Players (Separate with \',\')')}</legend>
+                        ${dropdownRecipientPlayer}
+                    </fieldset>
+                    <fieldset>
+                        <legend>${twSDK.tt('Tribes (Separate with \',\')')}</legend>
+                        ${dropdownRecipientTribe}
+                    </fieldset>
+                </fieldset>
+            </div>
             <div class="sb-grid sb-grid-4 ra-mb10">
                 <fieldset>
                     <legend>${twSDK.tt('Allied Players (Separate with \',\')')}</legend>
@@ -1483,6 +1547,23 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     .copy-button:hover {
                         background-color: #a0884e;
                     }
+                    #resetInput {
+                        padding: 8px;
+                        font-size: 11.5px;
+                        color: white;
+                        font-weight: bold;
+                        background: #af281d;
+                        background: linear-gradient(to bottom, #af281d 0%,#801006 100%);
+                        border: 1px solid;
+                        border-color: #006712;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        
+                    }
+                    #resetInput:hover {
+                        background: #c92722;
+                        background: linear-gradient(to bottom, #c92722 0%,#a00d08 100%);
+                    }
                     #pl-separator {
                         font-size: 15px;
                         width: 100%;
@@ -1673,12 +1754,36 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             switch (inputId) {
                 case "pl-players-Players":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const plPlayers = inputValue.split(",").filter(player => player.trim() !== "");
+                    const plUniquePlayers = [...new Set(plPlayers)];
+                    inputValue = plUniquePlayers.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "pl-tribes-Tribes":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const plTribes = inputValue.split(",").filter(tribe => tribe.trim() !== "");
+                    const plUniqueTribes = [...new Set(plTribes)];
+                    inputValue = plUniqueTribes.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "pl-excluded-players-Players":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const plExcludedPlayers = inputValue.split(",").filter(player => player.trim() !== "");
+                    const plUniqueExcludedPlayers = [...new Set(plExcludedPlayers)];
+                    inputValue = plUniqueExcludedPlayers.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "pl-min-points":
                     inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_PLAYER_POINTS : parseInt($(this).val());
@@ -1721,9 +1826,25 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     break;
                 case "vl-players-Players":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const vlPlayers = inputValue.split(",").filter(player => player.trim() !== "");
+                    const vlUniquePlayers = [...new Set(vlPlayers)];
+                    inputValue = vlUniquePlayers.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "vl-tribes-Tribes":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const vlTribes = inputValue.split(",").filter(tribe => tribe.trim() !== "");
+                    const vlUniqueTribes = [...new Set(vlTribes)];
+                    inputValue = vlUniqueTribes.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "vl-min-x-coordinate":
                     inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_X : parseInt($(this).val());
@@ -1785,17 +1906,71 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 case "vl-raw-coordinates":
                     inputValue = $(this).prop("checked");
                     break;
+                case "fl-recipient-players-Players":
+                    inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const flRecipientPlayers = inputValue.split(",").filter(player => player.trim() !== "");
+                    const flUniqueRecipientPlayers = [...new Set(flRecipientPlayers)];
+                    inputValue = flUniqueRecipientPlayers.join(",");
+                    $(this).val(inputValue);
+                    break;
+                case "fl-recipient-tribes-Tribes":
+                    inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const flRecipientTribes = inputValue.split(",").filter(tribe => tribe.trim() !== "");
+                    const flUniqueRecipientTribes = [...new Set(flRecipientTribes)];
+                    inputValue = flUniqueRecipientTribes.join(",");
+                    $(this).val(inputValue);
+                    break;
                 case "fl-ally-players-Players":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const flAllyPlayers = inputValue.split(",").filter(player => player.trim() !== "");
+                    const flUniqueAllyPlayers = [...new Set(flAllyPlayers)];
+                    inputValue = flUniqueAllyPlayers.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "fl-ally-tribes-Tribes":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const flAllyTribes = inputValue.split(",").filter(tribe => tribe.trim() !== "");
+                    const flUniqueAllyTribes = [...new Set(flAllyTribes)];
+                    inputValue = flUniqueAllyTribes.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "fl-enemy-players-Players":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const flEnemyPlayers = inputValue.split(",").filter(player => player.trim() !== "");
+                    const flUniqueEnemyPlayers = [...new Set(flEnemyPlayers)];
+                    inputValue = flUniqueEnemyPlayers.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "fl-enemy-tribes-Tribes":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const flEnemyTribes = inputValue.split(",").filter(tribe => tribe.trim() !== "");
+                    const flUniqueEnemyTribes = [...new Set(flEnemyTribes)];
+                    inputValue = flUniqueEnemyTribes.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "fl-min-distance":
                     inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_DISTANCE : parseInt($(this).val());
@@ -1882,15 +2057,47 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     break;
                 case "f-ally-players-Players":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const fAllyPlayers = inputValue.split(",").filter(player => player.trim() !== "");
+                    const fUniqueAllyPlayers = [...new Set(fAllyPlayers)];
+                    inputValue = fUniqueAllyPlayers.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "f-ally-tribes-Tribes":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const fAllyTribes = inputValue.split(",").filter(tribe => tribe.trim() !== "");
+                    const fUniqueAllyTribes = [...new Set(fAllyTribes)];
+                    inputValue = fUniqueAllyTribes.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "f-enemy-players-Players":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const fEnemyPlayers = inputValue.split(",").filter(player => player.trim() !== "");
+                    const fUniqueEnemyPlayers = [...new Set(fEnemyPlayers)];
+                    inputValue = fUniqueEnemyPlayers.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "f-enemy-tribes-Tribes":
                     inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const fEnemyTribes = inputValue.split(",").filter(tribe => tribe.trim() !== "");
+                    const fUniqueEnemyTribes = [...new Set(fEnemyTribes)];
+                    inputValue = fUniqueEnemyTribes.join(",");
+                    $(this).val(inputValue);
                     break;
                 case "f-min-distance":
                     inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_DISTANCE : parseInt($(this).val());
@@ -1968,6 +2175,79 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             settingsObject[inputId] = inputValue;
             saveLocalStorage(settingsObject);
         }
+        function resetInputFields(inputString) {
+            const localStorageSettings = getLocalStorage();
+
+            switch (inputString) {
+                case "fakelist":
+                    localStorageSettings["fl-recipient-players-Players"] = "";
+                    localStorageSettings["fl-recipient-tribes-Tribes"] = "";
+                    localStorageSettings["fl-ally-players-Players"] = "";
+                    localStorageSettings["fl-ally-tribes-Tribes"] = "";
+                    localStorageSettings["fl-enemy-players-Players"] = "";
+                    localStorageSettings["fl-enemy-tribes-Tribes"] = "";
+                    localStorageSettings["fl-min-distance"] = DEFAULT_MIN_DISTANCE;
+                    localStorageSettings["fl-max-distance"] = DEFAULT_MAX_DISTANCE;
+                    localStorageSettings["fl-min-points"] = DEFAULT_MIN_VILLAGE_POINTS;
+                    localStorageSettings["fl-max-points"] = DEFAULT_MAX_VILLAGE_POINTS;
+                    localStorageSettings["fl-fakes-per-player"] = DEFAULT_FAKES_PER_PLAYER;
+                    localStorageSettings["fl-filter-villages"] = false;
+                    localStorageSettings["fl-image"] = false;
+                    localStorageSettings["fl-display-targets"] = false;
+                    localStorageSettings["fl-raw-coordinates"] = false;
+                    localStorageSettings["fl-with-counts"] = false;
+                    localStorageSettings["fl-ally-village-radius"] = DEFAULT_RADIUS;
+                    localStorageSettings["fl-number-ally-villages-radius"] = DEFAULT_NUMBER_IN_RADIUS;
+                    break;
+                case "playerlist":
+                    // Reset other values specific to playerlist
+                    localStorageSettings["pl-players-Players"] = "";
+                    localStorageSettings["pl-tribes-Tribes"] = "";
+                    localStorageSettings["pl-excluded-players-Players"] = "";
+                    localStorageSettings["pl-min-points"] = DEFAULT_MIN_PLAYER_POINTS;
+                    localStorageSettings["pl-max-points"] = DEFAULT_MAX_PLAYER_POINTS;
+                    localStorageSettings["pl-min-villages"] = DEFAULT_MIN_VILLAGES;
+                    localStorageSettings["pl-max-villages"] = DEFAULT_MAX_VILLAGES;
+                    localStorageSettings["pl-separator"] = DEFAULT_SEPARATOR;
+                    break;
+                case "villagelist":
+                    // Reset other values specific to villagelist
+                    localStorageSettings["vl-players-Players"] = "";
+                    localStorageSettings["vl-tribes-Tribes"] = "";
+                    localStorageSettings["vl-min-x-coordinate"] = DEFAULT_MIN_X;
+                    localStorageSettings["vl-max-x-coordinate"] = DEFAULT_MAX_X;
+                    localStorageSettings["vl-min-y-coordinate"] = DEFAULT_MIN_Y;
+                    localStorageSettings["vl-max-y-coordinate"] = DEFAULT_MAX_Y;
+                    localStorageSettings["vl-min-points"] = DEFAULT_MIN_VILLAGE_POINTS;
+                    localStorageSettings["vl-max-points"] = DEFAULT_MAX_VILLAGE_POINTS;
+                    localStorageSettings["vl-raw-coordinates"] = false;
+                    localStorageSettings["vl-image"] = false;
+                    break;
+                case "frontline":
+                    // Reset other values specific to frontline
+                    localStorageSettings["f-ally-players-Players"] = "";
+                    localStorageSettings["f-ally-tribes-Tribes"] = "";
+                    localStorageSettings["f-enemy-players-Players"] = "";
+                    localStorageSettings["f-enemy-tribes-Tribes"] = "";
+                    localStorageSettings["f-min-distance"] = DEFAULT_MIN_DISTANCE;
+                    localStorageSettings["f-max-distance"] = DEFAULT_MAX_DISTANCE;
+                    localStorageSettings["f-min-points"] = DEFAULT_MIN_VILLAGE_POINTS;
+                    localStorageSettings["f-max-points"] = DEFAULT_MAX_VILLAGE_POINTS;
+                    localStorageSettings["f-filter-villages"] = false;
+                    localStorageSettings["f-image"] = false;
+                    localStorageSettings["f-raw-coordinates"] = false;
+                    localStorageSettings["f-ally-village-radius"] = DEFAULT_RADIUS;
+                    localStorageSettings["f-number-ally-villages-radius"] = DEFAULT_NUMBER_IN_RADIUS;
+                    break;
+                default:
+                    console.error(`${scriptInfo}: Unknown inputString: ${inputString}`);
+                    return;
+            }
+
+            saveLocalStorage(localStorageSettings);
+            initializeInputFields();
+        }
+
         // Service: Function to get settings from localStorage
         function getLocalStorage() {
             const localStorageSettings = localStorage.getItem('sbCoordinateListGenerator');
@@ -2002,6 +2282,8 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     "vl-raw-coordinates": false,
 
                     // Fakelist
+                    "fl-recipient-players-Players": "",
+                    "fl-recipient-tribes-Tribes": "",
                     "fl-ally-players-Players": "",
                     "fl-ally-tribes-Tribes": "",
                     "fl-enemy-players-Players": "",
