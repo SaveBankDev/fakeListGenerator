@@ -1,7 +1,7 @@
 /*
 * Script Name: Coordinate List Generator
-* Version: v1.1
-* Last Updated: 2024-02-19
+* Version: v1.1.1
+* Last Updated: 2024-02-20
 * Author: SaveBank
 * Author Contact: Discord: savebank
 * Contributor: RedAlert 
@@ -72,13 +72,25 @@ var allIds = [
     "f-raw-coordinates",
     "f-ally-village-radius",
     "f-number-ally-villages-radius",
+
+    //Coordinate Filter
+    "cf-players-Players",
+    "cf-tribes-Tribes",
+    "cf-min-points",
+    "cf-max-points",
+    "cf-coordinate-occurrence",
+    "cf-barb-villages",
+    "cf-excluded-coordinates",
+    "cf-coordinates",
+
 ];
 var buttonIDs = [
     "copy-f-frontline-display",
     "copy-fl-target-coordinates-display",
     "copy-fl-fakelist-display",
     "copy-vl-coordinates-display",
-    "copy-pl-player-list-display"
+    "copy-pl-player-list-display",
+    "copy-cf-coordinates-display",
 ];
 var DEFAULT_MIN_VILLAGE_POINTS = 0;
 var DEFAULT_MAX_VILLAGE_POINTS = 99999;
@@ -96,6 +108,7 @@ var DEFAULT_MIN_VILLAGES = 0;
 var DEFAULT_MAX_VILLAGES = 99999;
 var DEFAULT_RADIUS = 10;
 var DEFAULT_NUMBER_IN_RADIUS = 12;
+var DEFAULT_COORDINATE_OCCURRENCE = 0;
 
 
 
@@ -167,6 +180,12 @@ var scriptConfig = {
             'Calculating for': 'Calculating for',
             'Fakelist Recipients:': 'Fakelist Recipients:',
             'Reset Input': 'Reset Input',
+            'Coordinate filter': 'Coordinate filter',
+            'Max Occurrences Per Coordinate (0 ignores this setting)': 'Max Occurrences Per Coordinate (0 ignores this setting)',
+            'Remove barbarian villages?': 'Remove barbarian villages?',
+            'Exclude Coordinates:': 'Exclude Coordinates:',
+            'The coordinates to be filtered:': 'The coordinates to be filtered:',
+            'Filter Coordinates': 'Filter Coordinates',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
@@ -226,6 +245,12 @@ var scriptConfig = {
             'Calculating for': 'Berechne seit',
             'Fakelist Recipients:': 'Fakelisten Empfänger:',
             'Reset Input': 'Eingaben zurücksetzen',
+            'Coordinate filter': 'Koordinatenfilter',
+            'Max Occurrences Per Coordinate (0 ignores this setting)': 'Max Vorkommen pro Koordinate (0 ignoriert diese Einstellung)',
+            'Remove barbarian villages?': 'Barbarendörfer entfernen?',
+            'Exclude Coordinates:': 'Zu entfernende Koordinaten',
+            'The coordinates to be filtered:': 'Zu filternde Koordinaten:',
+            'Filter Coordinates': 'Koordinaten filtern',
         }
     }
     ,
@@ -258,6 +283,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         }
         const { tribes, players, villages } = await fetchWorldConfigData();
         const allCoords = villages.map(village => [village[2], village[3]]);
+        const allVillages = new Map(villages.map(village => [`${village[2]}|${village[3]}`, [village[0], village[4], village[5]]]));
         const endTime = performance.now();
         if (DEBUG) console.debug(`${scriptInfo}: Startup time: ${(endTime - startTime).toFixed(2)} milliseconds`);
         if (DEBUG) console.debug(`${scriptInfo}: `, tribes);
@@ -286,6 +312,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             const villageListContent = renderVillageList();
             const playerListContent = renderPlayerList();
             const frontlineContent = renderFrontline();
+            const coordinateFilterContent = renderCoordinateFilter();
             let content = `
             <div id="menu" class="sb-grid sb-grid-5">
                 <div>
@@ -310,6 +337,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             <div id="frontline" style="display: none;">
                 ${frontlineContent}
             </div>
+            <div id="coordinatefilter">
+                ${coordinateFilterContent}
+            </div>
             `
             twSDK.renderBoxWidget(
                 content,
@@ -325,7 +355,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         function addEventHandlers() {
             $('#selection-menu').on('change', function () {
                 const selectedValue = $(this).val();
-                $('#fakelist, #villagelist, #playerlist, #frontline').hide();
+                $('#fakelist, #villagelist, #playerlist, #frontline, #coordinatefilter').hide();
                 $(`#${selectedValue}`).show();
                 const localStorageSettings = getLocalStorage();
                 localStorageSettings['selection-menu'] = selectedValue;
@@ -352,6 +382,10 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
             $('#calculate-frontline').on('click', function () {
                 calculateFrontline();
+            });
+
+            $('#filter-coordinates').on('click', function () {
+                filterCoordinates();
             });
 
             buttonIDs.forEach(function (btnId) {
@@ -1047,6 +1081,115 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
         }
 
+        function filterCoordinates() {
+            if (DEBUG) console.debug(`${scriptInfo}: Started filtering coordinates`);
+            const startTime = performance.now();
+            resetOutput("coordinatefilter");
+
+            const localStorageSettings = getLocalStorage();
+            let playerInput = localStorageSettings["cf-players-Players"].split(",");
+            let tribeInput = localStorageSettings["cf-tribes-Tribes"].split(",");
+            let minPoints = parseInt(localStorageSettings["cf-min-points"]);
+            let maxPoints = parseInt(localStorageSettings["cf-max-points"]);
+            let coordinateOccurrence = parseInt(localStorageSettings["cf-coordinate-occurrence"]);
+            let barbVillagesBool = parseBool(localStorageSettings["cf-barb-villages"]);
+            let excludedCoordinates = localStorageSettings["cf-excluded-coordinates"];
+            let coordinates = localStorageSettings["cf-coordinates"];
+
+            tribeInput = tribeInput.filter(item => item);
+            playerInput = playerInput.filter(item => item);
+
+            excludedCoordinates = excludedCoordinates.match(twSDK.coordsRegex) || [];
+            coordinates = coordinates.match(twSDK.coordsRegex) || [];
+
+            if (DEBUG) console.debug(`${scriptInfo}: Coordinates found in filterCoordinates(): `, coordinates);
+            if (DEBUG) console.debug(`${scriptInfo}: Excluded Coordinates found in filterCoordinates(): `, excludedCoordinates);
+
+            let playerIds = [];
+            let additionalPlayerIds = [];
+
+            playerInput.forEach(inputName => {
+                let playerExists = players.find(player => player[1] === inputName);
+                if (playerExists) {
+                    playerIds.push(playerExists[0]);
+                }
+            });
+
+            tribeInput.forEach(tribeName => {
+                let tribe = tribes.find(tribe => tribe[2] === tribeName);
+                if (!tribe) {
+                    console.warn(`${scriptInfo}: Tribe named ${tribeName} does not exist.`);
+                    return;
+                }
+                let tribeId = tribe[0];
+                players.forEach(player => {
+                    if (player[2] === tribeId) {
+                        additionalPlayerIds.push(player[0]);
+                    }
+                });
+            });
+
+            let finalPlayerIdsToExclude = [...new Set([...playerIds, ...additionalPlayerIds])];
+
+            if (DEBUG) console.debug(`${scriptInfo}: Player Ids to exclude found in filterCoordinates(): `, finalPlayerIdsToExclude);
+
+            if (barbVillagesBool) {
+                finalPlayerIdsToExclude.push(0);
+            }
+            let excludedVillages = [];
+
+            if (excludedCoordinates) {
+                excludedCoordinates.forEach(coord => {
+                    const village = allVillages.get(coord);
+                    if (village) {
+                        excludedVillages.push(village[0]);
+                    }
+                });
+            }
+
+            if (DEBUG) console.debug(`${scriptInfo}: Villages to exclude found in filterCoordinates(): `, excludedVillages);
+
+
+            let coordinateVillages = [];
+
+            coordinates.forEach(coord => {
+                const village = allVillages.get(coord);
+                if (village) {
+                    if (!finalPlayerIdsToExclude.includes(village[1]) && !excludedCoordinates.includes(village[0]) && village[2] >= minPoints && village[2] <= maxPoints) {
+                        coordinateVillages.push(coord);
+                    }
+                }
+            });
+
+
+            if (coordinateOccurrence > 0) {
+                let coordinateCount = {};
+                let filteredCoordinateVillages = [];
+
+                coordinateVillages.forEach(coord => {
+                    coordinateCount[coord] = (coordinateCount[coord] || 0) + 1;
+                    if (coordinateCount[coord] <= coordinateOccurrence) {
+                        filteredCoordinateVillages.push(coord);
+                    }
+                });
+
+                coordinateVillages = filteredCoordinateVillages;
+            }
+
+            if (DEBUG) console.debug(`${scriptInfo}: Result Coordinates found in filterCoordinates(): `, coordinateVillages);
+
+            let output = "";
+            for (let coordinate of coordinateVillages) {
+                output += `${coordinate} `;
+            }
+
+            $('#cf-coordinates-display').val(output);
+            $(`#cf-result-legend`).text(twSDK.tt('Coordinates:') + ' ' + coordinateVillages.length);
+            $(`#filter-coordinates-result`).show();
+            const endTime = performance.now();
+            if (DEBUG) console.debug(`${scriptInfo}: Calculation time for filterCoordinates(): ${(endTime - startTime).toFixed(2)} milliseconds`);
+        }
+
         function renderDropdownMenu() {
             html = `
             <select id="selection-menu" class="ra-mb10">
@@ -1054,6 +1197,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 <option value="frontline">${twSDK.tt('Frontline')}</option>
                 <option value="villagelist">${twSDK.tt('Village list')}</option>
                 <option value="playerlist">${twSDK.tt('Player list')}</option>
+                <option value="coordinatefilter">${twSDK.tt('Coordinate filter')}</option>
             </select>
         `
             return html;
@@ -1428,6 +1572,69 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             return html;
         }
 
+        function renderCoordinateFilter() {
+            const dropdownPlayer = buildDropDown(players, "Players", "cf-players");
+            const dropdownTribe = buildDropDown(tribes, "Tribes", "cf-tribes");
+            const copyButtonCoordinateFilter = generateCopyButton("cf-coordinates-display");
+
+            let html =
+                `
+            <div class="sb-grid sb-grid-2 ra-mb10">
+                <fieldset>
+                    <legend>${twSDK.tt('Players (Separate with \',\')')}</legend>
+                    ${dropdownPlayer}
+                </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Tribes (Separate with \',\')')}</legend>
+                    ${dropdownTribe}
+                </fieldset>
+            </div>
+            <div class="ra-mb10 sb-grid sb-grid-4">
+                <fieldset>
+                    <legend>${twSDK.tt('Min Village Points')}</legend>
+                    <input type="number" id="cf-min-points" value="0"/>
+                </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Max Village Points')}</legend>
+                    <input type="number" id="cf-max-points" value="99999999"/>
+                </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Max Occurrences Per Coordinate (0 ignores this setting)')}</legend>
+                    <input type="number" id="cf-coordinate-occurrence" value="1"/>
+                </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Remove barbarian villages?')}</legend>
+                    <input type="checkbox" id="cf-barb-villages"/>
+                </fieldset>
+            </div>
+            <div class="ra-mb10" class="coordinate-input">
+                <fieldset>
+                    <legend>${twSDK.tt('Exclude Coordinates:')}</legend>
+                    <textarea id="cf-excluded-coordinates" class="ra-textarea sb-coord-input" placeholder="Enter coordinates you want to remove..."></textarea>
+                </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('The coordinates to be filtered:')}</legend>
+                    <textarea id="cf-coordinates" class="ra-textarea sb-coord-input" placeholder="Enter coordinates..."></textarea>
+                </fieldset>
+            </div>
+
+            <div class="ra-mb10">
+                <a href="javascript:void(0);" id="filter-coordinates" class="btn btn-confirm-yes onclick="">
+                    ${twSDK.tt('Filter Coordinates')}
+                </a>
+            </div>
+            <div id="filter-coordinates-result" style="display: none;">
+                <fieldset>
+                    <legend id="cf-result-legend">${twSDK.tt('Coordinates:')}</legend>
+                    <textarea readonly id="cf-coordinates-display" class="result-text"></textarea>
+                    ${copyButtonCoordinateFilter}
+                </fieldset>
+            </div>
+        `
+
+            return html;
+        }
+
         function generateCSS() {
             // Start building the CSS string
             let css = `
@@ -1553,6 +1760,12 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     }
                     .copy-button:hover {
                         background-color: #a0884e;
+                    }
+                    .sb-coord-input {
+                        overflow: hidden;
+                        resize: none;
+                        scrollbar-width: none;
+                        -ms-overflow-style: none;
                     }
                     #resetInput {
                         padding: 8px;
@@ -1717,6 +1930,12 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     $(`#f-image-div`).hide();
                     $(`#f-image-display`).attr('src', "");
                     break;
+                case 'coordinatefilter':
+                    if (DEBUG) console.debug(`${scriptInfo}: Reset output for ${input}`);
+                    $(`#cf-result-legend`).text(twSDK.tt('Coordinates:'));
+                    $(`#filter-coordinates-result`).hide();
+                    $(`#cf-coordinates-display`).val("");
+                    break;
                 default:
                     console.error(`${scriptInfo}: Can't reset output for ${input}`);
             }
@@ -1747,7 +1966,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                             }
                         }
                     } else if (element && id === 'selection-menu') {
-                        $('#fakelist, #villagelist, #playerlist, #frontline').hide();
+                        $('#fakelist, #villagelist, #playerlist, #frontline, #coordinatefilter').hide();
                         $(`#${settingsObject[id]}`).show();
                         element.value = settingsObject[id];
                     } else if (element) {
@@ -2178,6 +2397,70 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                         $(this).val(inputValue)
                     }
                     break;
+                case "cf-players-Players":
+                    inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const cfPlayers = inputValue.split(",").filter(player => player.trim() !== "");
+                    const cfUniquePlayers = [...new Set(cfPlayers)];
+                    inputValue = cfUniquePlayers.join(",");
+                    $(this).val(inputValue);
+                    break;
+                case "cf-tribes-Tribes":
+                    inputValue = $(this).val();
+                    if (!inputValue.trim()) {
+                        $(this).val(inputValue);
+                        break;
+                    }
+                    const cfTribes = inputValue.split(",").filter(tribe => tribe.trim() !== "");
+                    const cfUniqueTribes = [...new Set(cfTribes)];
+                    inputValue = cfUniqueTribes.join(",");
+                    $(this).val(inputValue);
+                    break;
+                case "cf-min-points":
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MIN_VILLAGE_POINTS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MIN_VILLAGE_POINTS);
+                        inputValue = DEFAULT_MIN_VILLAGE_POINTS;
+                    } else {
+                        $(this).val(inputValue)
+                    }
+                    break;
+                case "cf-max-points":
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_MAX_VILLAGE_POINTS : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_MAX_VILLAGE_POINTS);
+                        inputValue = DEFAULT_MAX_VILLAGE_POINTS;
+                    } else {
+                        $(this).val(inputValue)
+                    }
+                    break;
+                case "cf-coordinate-occurrence":
+                    inputValue = isNaN(parseInt($(this).val())) ? DEFAULT_COORDINATE_OCCURRENCE : parseInt($(this).val());
+                    if (inputValue < 0) {
+                        $(this).val(DEFAULT_COORDINATE_OCCURRENCE);
+                        inputValue = DEFAULT_COORDINATE_OCCURRENCE;
+                    } else {
+                        $(this).val(inputValue)
+                    }
+                    break;
+                case "cf-barb-villages":
+                    inputValue = $(this).prop("checked");
+                    break;
+                case "cf-excluded-coordinates":
+                    inputValue = $(this).val();
+                    let matchesExcluded = inputValue.match(twSDK.coordsRegex) || [];
+                    inputValue = matchesExcluded ? matchesExcluded.join(' ') : '';
+                    $(this).val(inputValue);
+                    break;
+                case "cf-coordinates":
+                    inputValue = $(this).val();
+                    let matchesCoordinates = inputValue.match(twSDK.coordsRegex) || [];
+                    inputValue = matchesCoordinates ? matchesCoordinates.join(' ') : '';
+                    $(this).val(inputValue);
+                    break;
                 default:
                     console.error(`${scriptInfo}: Unknown id: ${inputId}`)
             }
@@ -2249,6 +2532,17 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     localStorageSettings["f-raw-coordinates"] = false;
                     localStorageSettings["f-ally-village-radius"] = DEFAULT_RADIUS;
                     localStorageSettings["f-number-ally-villages-radius"] = DEFAULT_NUMBER_IN_RADIUS;
+                    break;
+                case "coordinatefilter":
+                    // Reset other values specific to coordinatefilter
+                    localStorageSettings["cf-players-Players"] = "";
+                    localStorageSettings["cf-tribes-Tribes"] = "";
+                    localStorageSettings["cf-min-points"] = DEFAULT_MIN_VILLAGE_POINTS;
+                    localStorageSettings["cf-max-points"] = DEFAULT_MAX_VILLAGE_POINTS;
+                    localStorageSettings["cf-coordinate-occurrence"] = DEFAULT_COORDINATE_OCCURRENCE;
+                    localStorageSettings["cf-barb-villages"] = false;
+                    localStorageSettings["cf-excluded-coordinates"] = "";
+                    localStorageSettings["cf-coordinates"] = "";
                     break;
                 default:
                     console.error(`${scriptInfo}: Unknown inputString: ${inputString}`);
@@ -2326,6 +2620,16 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     "f-raw-coordinates": false,
                     "f-ally-village-radius": DEFAULT_RADIUS,
                     "f-number-ally-villages-radius": DEFAULT_NUMBER_IN_RADIUS,
+
+                    // Coordinate Filter
+                    "cf-players-Players": "",
+                    "cf-tribes-Tribes": "",
+                    "cf-min-points": DEFAULT_MIN_VILLAGE_POINTS,
+                    "cf-max-points": DEFAULT_MAX_VILLAGE_POINTS,
+                    "cf-coordinate-occurrence": DEFAULT_COORDINATE_OCCURRENCE,
+                    "cf-barb-villages": false,
+                    "cf-excluded-coordinates": "",
+                    "cf-coordinates": "",
                 };
 
                 saveLocalStorage(defaultSettings);
