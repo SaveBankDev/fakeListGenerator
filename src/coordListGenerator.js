@@ -116,7 +116,7 @@ var scriptConfig = {
     scriptData: {
         prefix: 'sbCLG',
         name: 'Coordinate List Generator',
-        version: 'v1.1',
+        version: 'v1.1.1',
         author: 'SaveBank',
         authorUrl: 'https://forum.tribalwars.net/index.php?members/savebank.131111/',
         helpLink: 'https://forum.tribalwars.net/index.php?threads/coordinate-list-generator.292006/',
