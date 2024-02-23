@@ -116,7 +116,7 @@ var scriptConfig = {
     scriptData: {
         prefix: 'sbCLG',
         name: 'Coordinate List Generator',
-        version: 'v1.1.1',
+        version: 'v1.1.2',
         author: 'SaveBank',
         authorUrl: 'https://forum.tribalwars.net/index.php?members/savebank.131111/',
         helpLink: 'https://forum.tribalwars.net/index.php?threads/coordinate-list-generator.292006/',
@@ -186,6 +186,8 @@ var scriptConfig = {
             'Exclude Coordinates:': 'Exclude Coordinates:',
             'The coordinates to be filtered:': 'The coordinates to be filtered:',
             'Filter Coordinates': 'Filter Coordinates',
+            'Enter coordinates you want to remove...': 'Enter coordinates you want to remove...',
+            'Enter coordinates...': 'Enter coordinates...',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
@@ -251,6 +253,8 @@ var scriptConfig = {
             'Exclude Coordinates:': 'Zu entfernende Koordinaten',
             'The coordinates to be filtered:': 'Zu filternde Koordinaten:',
             'Filter Coordinates': 'Koordinaten filtern',
+            'Enter coordinates you want to remove...': 'Zu entfernende Koordinaten eingeben...',
+            'Enter coordinates...': 'Koordinaten eingeben...',
         }
     }
     ,
@@ -1610,11 +1614,11 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             <div class="ra-mb10" class="coordinate-input">
                 <fieldset>
                     <legend>${twSDK.tt('Exclude Coordinates:')}</legend>
-                    <textarea id="cf-excluded-coordinates" class="ra-textarea sb-coord-input" placeholder="Enter coordinates you want to remove..."></textarea>
+                    <textarea id="cf-excluded-coordinates" class="ra-textarea sb-coord-input" placeholder="${twSDK.tt('Enter coordinates you want to remove...')}"></textarea>
                 </fieldset>
                 <fieldset>
                     <legend>${twSDK.tt('The coordinates to be filtered:')}</legend>
-                    <textarea id="cf-coordinates" class="ra-textarea sb-coord-input" placeholder="Enter coordinates..."></textarea>
+                    <textarea id="cf-coordinates" class="ra-textarea sb-coord-input" placeholder="${twSDK.tt('Enter coordinates...')}"></textarea>
                 </fieldset>
             </div>
 
