@@ -83,6 +83,7 @@ var allIds = [
     "cf-barb-villages",
     "cf-excluded-coordinates",
     "cf-coordinates",
+    "cf-number-coordinates",
 
 ];
 var buttonIDs = [
@@ -189,6 +190,7 @@ var scriptConfig = {
             'Filter Coordinates': 'Filter Coordinates',
             'Enter coordinates you want to remove...': 'Enter coordinates you want to remove...',
             'Enter coordinates...': 'Enter coordinates...',
+            'Number Coordinates?': 'Number Coordinates?',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
@@ -256,6 +258,7 @@ var scriptConfig = {
             'Filter Coordinates': 'Koordinaten filtern',
             'Enter coordinates you want to remove...': 'Zu entfernende Koordinaten eingeben...',
             'Enter coordinates...': 'Koordinaten eingeben...',
+            'Number Coordinates?': 'Koordinaten nummerieren?',
         }
     }
     ,
@@ -1114,6 +1117,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             let maxPoints = parseInt(localStorageSettings["cf-max-points"]);
             let coordinateOccurrence = parseInt(localStorageSettings["cf-coordinate-occurrence"]);
             let barbVillagesBool = parseBool(localStorageSettings["cf-barb-villages"]);
+            let numberedBool = parseBool(localStorageSettings["cf-number-coordinates"]);
             let excludedCoordinates = localStorageSettings["cf-excluded-coordinates"];
             let coordinates = localStorageSettings["cf-coordinates"];
 
@@ -1200,8 +1204,14 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             if (DEBUG) console.debug(`${scriptInfo}: Result Coordinates found in filterCoordinates(): `, coordinateVillages);
 
             let output = "";
-            for (let coordinate of coordinateVillages) {
-                output += `${coordinate} `;
+            if (numberedBool) {
+                coordinateVillages.forEach((coord, index) => {
+                    output += `${index + 1}. ${coord}\n`;
+                });
+            } else {
+                for (let coordinate of coordinateVillages) {
+                    output += `${coordinate} `;
+                }
             }
 
             $('#cf-coordinates-display').val(output);
@@ -1616,7 +1626,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     ${dropdownTribe}
                 </fieldset>
             </div>
-            <div class="ra-mb10 sb-grid sb-grid-4">
+            <div class="ra-mb10 sb-grid sb-grid-5">
                 <fieldset>
                     <legend>${twSDK.tt('Min Village Points')}</legend>
                     <input type="number" id="cf-min-points" value="0"/>
@@ -1633,6 +1643,10 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     <legend>${twSDK.tt('Remove barbarian villages?')}</legend>
                     <input type="checkbox" id="cf-barb-villages"/>
                 </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Number Coordinates?')}</legend>
+                    <input type="checkbox" id="cf-number-coordinates"/>
+                 </fieldset>
             </div>
             <div class="ra-mb10" class="coordinate-input">
                 <fieldset>
@@ -2482,6 +2496,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 case "cf-barb-villages":
                     inputValue = $(this).prop("checked");
                     break;
+                case "cf-number-coordinates":
+                    inputValue = $(this).prop("checked");
+                    break;
                 case "cf-excluded-coordinates":
                     inputValue = $(this).val();
                     let matchesExcluded = inputValue.match(twSDK.coordsRegex) || [];
@@ -2575,6 +2592,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     localStorageSettings["cf-max-points"] = DEFAULT_MAX_VILLAGE_POINTS;
                     localStorageSettings["cf-coordinate-occurrence"] = DEFAULT_COORDINATE_OCCURRENCE;
                     localStorageSettings["cf-barb-villages"] = false;
+                    localStorageSettings["cf-number-coordinates"] = false;
                     localStorageSettings["cf-excluded-coordinates"] = "";
                     localStorageSettings["cf-coordinates"] = "";
                     break;
@@ -2640,7 +2658,8 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 "cf-coordinate-occurrence",
                 "cf-barb-villages",
                 "cf-excluded-coordinates",
-                "cf-coordinates"
+                "cf-coordinates",
+                "cf-number-coordinates",
             ];
 
             const missingSettings = expectedSettings.filter(setting => !(setting in localStorageSettings));
@@ -2718,6 +2737,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     "cf-max-points": DEFAULT_MAX_VILLAGE_POINTS,
                     "cf-coordinate-occurrence": DEFAULT_COORDINATE_OCCURRENCE,
                     "cf-barb-villages": false,
+                    "cf-number-coordinates": false,
                     "cf-excluded-coordinates": "",
                     "cf-coordinates": "",
                 };
