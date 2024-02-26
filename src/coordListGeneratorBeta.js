@@ -1,7 +1,7 @@
 /*
 * Script Name: Coordinate List Generator
 * Version: v1.2
-* Last Updated: 2024-02-20
+* Last Updated: 2024-02-25
 * Author: SaveBank
 * Author Contact: Discord: savebank
 * Contributor: RedAlert 
@@ -208,7 +208,7 @@ var scriptConfig = {
             'Image?': 'Bild?',
             'Show Target Coordinates?': 'Zielkoordinaten anzeigen?',
             'Raw Coordinates?': 'Unformatierte Koordinaten?',
-            'Calculate Fakelist': 'Koordinatenliste berechnen',
+            'Calculate Fakelist': 'Fakeliste berechnen',
             'Start typing for suggestions ...': 'Fang an zu tippen für Vorschläge ...',
             'Additional Options': 'Weitere Optionen',
             'With Counts?': 'Mit Anzahl?',
@@ -222,7 +222,7 @@ var scriptConfig = {
             'Filter allied villages if not enough other allied villages are nearby:': 'Filter verbündete Dörfer wenn nicht genug andere verbündete Dörfer in der Nähe sind:',
             'Image:': 'Bild:',
             'Fakelist:': 'Fakeliste:',
-            'Target Coordinates:': 'Target Coordinates:',
+            'Target Coordinates:': 'Zielkoordinaten:',
             'Copy': 'Kopieren',
             'Calculate Village List': 'Dörferliste berechnen',
             'Coordinates:': 'Koordinaten:',
@@ -237,8 +237,8 @@ var scriptConfig = {
             'Players:': 'Spieler:',
             'Min Villages': 'Min Dörfer',
             'Max Villages': 'Max Dörfer',
-            'Frontline Coordinates:': 'Frontline Koordinaten:',
-            'Calculate Frontline': 'Frontline berechnen',
+            'Frontline Coordinates:': 'Frontdörfer Koordinaten:',
+            'Calculate Frontline': 'Frontdörfer berechnen',
             'Exclude Players (Separate with \',\')': 'Ohne Spieler (Getrennt durch \',\')',
             'No players or tribes selected': 'Keine Spieler oder Stämme ausgwählt',
             'There was an error while fetching the data!': 'Es ist ein Fehler beim Abrufen der Daten aufgetreten!',
