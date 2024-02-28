@@ -1180,7 +1180,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             coordinates.forEach(coord => {
                 const village = allVillages.get(coord);
                 if (village) {
-                    if (!finalPlayerIdsToExclude.includes(village[1]) && !excludedCoordinates.includes(village[0]) && village[2] >= minPoints && village[2] <= maxPoints) {
+                    if (!finalPlayerIdsToExclude.includes(village[1]) && !excludedVillages.includes(village[0]) && village[2] >= minPoints && village[2] <= maxPoints) {
                         coordinateVillages.push(coord);
                     }
                 }
