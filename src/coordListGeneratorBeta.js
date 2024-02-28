@@ -1,7 +1,7 @@
 /*
 * Script Name: Coordinate List Generator
 * Version: v1.2
-* Last Updated: 2024-02-25
+* Last Updated: 2024-02-28
 * Author: SaveBank
 * Author Contact: Discord: savebank
 * Contributor: RedAlert 
@@ -328,7 +328,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     ${menuContent}
                 </div>
                 <div class="ra-tac">
-                    <button id="resetInput" class="" >${twSDK.tt('Reset Input')}</button>
+                    <button id="resetInput" >${twSDK.tt('Reset Input')}</button>
                 </div>
                 <div> </div>
                 <div> </div>
@@ -1810,7 +1810,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     }
                     #resetInput {
                         padding: 8px;
-                        font-size: 13px;
+                        font-size: 12px;
                         color: white;
                         font-weight: bold;
                         background: #af281d;
@@ -2610,6 +2610,17 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             const localStorageSettings = JSON.parse(localStorage.getItem('sbCoordinateListGenerator'));
             // Check if all expected settings are in localStorageSettings
             const expectedSettings = [
+                "selection-menu",
+                // Fakelist
+                "fl-recipient-players-Players",
+                "fl-recipient-tribes-Tribes",
+                "fl-ally-players-Players",
+                "fl-ally-tribes-Tribes",
+                "fl-enemy-players-Players",
+                "fl-enemy-tribes-Tribes",
+                "fl-min-distance",
+                "fl-max-distance",
+                "fl-min-points",
                 "fl-max-points",
                 "fl-fakes-per-player",
                 "fl-filter-villages",
@@ -2619,6 +2630,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 "fl-with-counts",
                 "fl-ally-village-radius",
                 "fl-number-ally-villages-radius",
+                // Player List
                 "pl-players-Players",
                 "pl-tribes-Tribes",
                 "pl-excluded-players-Players",
@@ -2628,6 +2640,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 "pl-max-villages",
                 "pl-separator",
                 "pl-coordinates",
+                // Village List
                 "vl-players-Players",
                 "vl-tribes-Tribes",
                 "vl-min-x-coordinate",
@@ -2638,6 +2651,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 "vl-max-points",
                 "vl-raw-coordinates",
                 "vl-image",
+                // Frontline
                 "f-ally-players-Players",
                 "f-ally-tribes-Tribes",
                 "f-enemy-players-Players",
@@ -2651,6 +2665,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 "f-raw-coordinates",
                 "f-ally-village-radius",
                 "f-number-ally-villages-radius",
+                // Coordinate Filter
                 "cf-players-Players",
                 "cf-tribes-Tribes",
                 "cf-min-points",
@@ -2662,8 +2677,11 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 "cf-number-coordinates",
             ];
 
-            const missingSettings = expectedSettings.filter(setting => !(setting in localStorageSettings));
-            if (DEBUG) console.debug(`${scriptInfo}: Missing settings in localStorage: `, missingSettings);
+            let missingSettings = [];
+            if (localStorageSettings) {
+                missingSettings = expectedSettings.filter(setting => !(setting in localStorageSettings));
+                if (DEBUG) console.debug(`${scriptInfo}: Missing settings in localStorage: `, missingSettings);
+            }
 
             if (localStorageSettings && missingSettings.length === 0) {
                 // If settings exist in localStorage, parse and return the object
