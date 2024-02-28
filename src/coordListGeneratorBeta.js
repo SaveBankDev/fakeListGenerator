@@ -2684,7 +2684,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             }
 
             if (localStorageSettings && missingSettings.length === 0) {
-                // If settings exist in localStorage, parse and return the object
+                // If settings exist in localStorage  return the object
                 return localStorageSettings;
             } else {
                 const defaultSettings = {
