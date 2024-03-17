@@ -1,7 +1,7 @@
 /*
 * Script Name: Coordinate List Generator
-* Version: v1.1.1
-* Last Updated: 2024-02-20
+* Version: v1.2
+* Last Updated: 2024-02-28
 * Author: SaveBank
 * Author Contact: Discord: savebank
 * Contributor: RedAlert 
@@ -25,6 +25,7 @@ var allIds = [
     "pl-min-villages",
     "pl-max-villages",
     "pl-separator",
+    "pl-coordinates",
 
     // Village List
     "vl-players-Players",
@@ -82,6 +83,7 @@ var allIds = [
     "cf-barb-villages",
     "cf-excluded-coordinates",
     "cf-coordinates",
+    "cf-number-coordinates",
 
 ];
 var buttonIDs = [
@@ -116,7 +118,7 @@ var scriptConfig = {
     scriptData: {
         prefix: 'sbCLG',
         name: 'Coordinate List Generator',
-        version: 'v1.1.2',
+        version: 'v1.2',
         author: 'SaveBank',
         authorUrl: 'https://forum.tribalwars.net/index.php?members/savebank.131111/',
         helpLink: 'https://forum.tribalwars.net/index.php?threads/coordinate-list-generator.292006/',
@@ -188,6 +190,7 @@ var scriptConfig = {
             'Filter Coordinates': 'Filter Coordinates',
             'Enter coordinates you want to remove...': 'Enter coordinates you want to remove...',
             'Enter coordinates...': 'Enter coordinates...',
+            'Number Coordinates?': 'Number Coordinates?',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
@@ -255,6 +258,7 @@ var scriptConfig = {
             'Filter Coordinates': 'Koordinaten filtern',
             'Enter coordinates you want to remove...': 'Zu entfernende Koordinaten eingeben...',
             'Enter coordinates...': 'Koordinaten eingeben...',
+            'Number Coordinates?': 'Koordinaten nummerieren?',
         }
     }
     ,
@@ -288,6 +292,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         const { tribes, players, villages } = await fetchWorldConfigData();
         const allCoords = villages.map(village => [village[2], village[3]]);
         const allVillages = new Map(villages.map(village => [`${village[2]}|${village[3]}`, [village[0], village[4], village[5]]]));
+        const allPlayers = new Map(players.map(player => [player[0], player.slice(1)]));
         const endTime = performance.now();
         if (DEBUG) console.debug(`${scriptInfo}: Startup time: ${(endTime - startTime).toFixed(2)} milliseconds`);
         if (DEBUG) console.debug(`${scriptInfo}: `, tribes);
@@ -323,7 +328,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     ${menuContent}
                 </div>
                 <div class="ra-tac">
-                    <button id="resetInput" class="" >${twSDK.tt('Reset Input')}</button>
+                    <button id="resetInput" >${twSDK.tt('Reset Input')}</button>
                 </div>
                 <div> </div>
                 <div> </div>
@@ -944,18 +949,33 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             let minVillages = parseInt(localStorageSettings["pl-min-villages"]);
             let maxVillages = parseInt(localStorageSettings["pl-max-villages"]);
             let separator = localStorageSettings["pl-separator"];
+            let coordinates = localStorageSettings["pl-coordinates"];
+
             let playerNames = [];
             let additionalPlayerNames = [];
+            let coordinatePlayerNames = [];
 
             tribeInput = tribeInput.filter(item => item);
             playerInput = playerInput.filter(item => item);
             playersToExclude = playersToExclude.filter(item => item);
+            coordinates = coordinates.match(twSDK.coordsRegex) || [];
 
-            if (playerInput.length === 0 && tribeInput.length === 0) {
-                console.error(`${scriptInfo}: No player or tribes selected`);
-                UI.ErrorMessage(twSDK.tt('No players or tribes selected'));
-                return;
-            }
+            if (DEBUG) console.debug(`${scriptInfo}: Coordinates found in calculatePlayerList(): `, coordinates);
+
+
+            coordinates.forEach(coord => {
+                const village = allVillages.get(coord);
+                if (village) {
+                    let name = allPlayers.get(village[1])[0];
+                    if (!name) {
+                        console.warn(`${scriptInfo}: Player that owns ${coord} does not exist.`);
+                        return;
+                    }
+                    if (!playersToExclude.includes(name)) {
+                        coordinatePlayerNames.push(name);
+                    }
+                }
+            });
 
 
             tribeInput.forEach(tribeName => {
@@ -983,7 +1003,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 }
             });
 
-            let finalPlayerNames = [...new Set([...playerNames, ...additionalPlayerNames])];
+            let finalPlayerNames = [...new Set([...playerNames, ...additionalPlayerNames, ...coordinatePlayerNames])];
 
             let playerNamesString = finalPlayerNames.join(separator);
             $('#pl-player-list-display').val(playerNamesString);
@@ -1097,6 +1117,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             let maxPoints = parseInt(localStorageSettings["cf-max-points"]);
             let coordinateOccurrence = parseInt(localStorageSettings["cf-coordinate-occurrence"]);
             let barbVillagesBool = parseBool(localStorageSettings["cf-barb-villages"]);
+            let numberedBool = parseBool(localStorageSettings["cf-number-coordinates"]);
             let excludedCoordinates = localStorageSettings["cf-excluded-coordinates"];
             let coordinates = localStorageSettings["cf-coordinates"];
 
@@ -1183,8 +1204,14 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             if (DEBUG) console.debug(`${scriptInfo}: Result Coordinates found in filterCoordinates(): `, coordinateVillages);
 
             let output = "";
-            for (let coordinate of coordinateVillages) {
-                output += `${coordinate} `;
+            if (numberedBool) {
+                coordinateVillages.forEach((coord, index) => {
+                    output += `${index + 1}. ${coord}\n`;
+                });
+            } else {
+                for (let coordinate of coordinateVillages) {
+                    output += `${coordinate} `;
+                }
             }
 
             $('#cf-coordinates-display').val(output);
@@ -1249,6 +1276,12 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         <fieldset>
             <legend>${twSDK.tt('Separator:')}</legend>
             <input type="text" id="pl-separator" value=","/>
+        </fieldset>
+    </div>
+    <div class="ra-mb10" class="coordinate-input">
+        <fieldset>
+            <legend>${twSDK.tt('Coordinates:')}</legend>
+            <textarea id="pl-coordinates" class="ra-textarea sb-coord-input" placeholder="${twSDK.tt('Enter coordinates...')}"></textarea>
         </fieldset>
     </div>
     <div class="ra-mb10">
@@ -1593,7 +1626,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     ${dropdownTribe}
                 </fieldset>
             </div>
-            <div class="ra-mb10 sb-grid sb-grid-4">
+            <div class="ra-mb10 sb-grid sb-grid-5">
                 <fieldset>
                     <legend>${twSDK.tt('Min Village Points')}</legend>
                     <input type="number" id="cf-min-points" value="0"/>
@@ -1610,6 +1643,10 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     <legend>${twSDK.tt('Remove barbarian villages?')}</legend>
                     <input type="checkbox" id="cf-barb-villages"/>
                 </fieldset>
+                <fieldset>
+                    <legend>${twSDK.tt('Number Coordinates?')}</legend>
+                    <input type="checkbox" id="cf-number-coordinates"/>
+                 </fieldset>
             </div>
             <div class="ra-mb10" class="coordinate-input">
                 <fieldset>
@@ -1773,7 +1810,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     }
                     #resetInput {
                         padding: 8px;
-                        font-size: 13px;
+                        font-size: 12px;
                         color: white;
                         font-weight: bold;
                         background: #af281d;
@@ -2057,6 +2094,12 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     break;
                 case "pl-separator":
                     inputValue = $(this).val();
+                    break;
+                case "pl-coordinates":
+                    inputValue = $(this).val();
+                    let plMatchesCoordinates = inputValue.match(twSDK.coordsRegex) || [];
+                    inputValue = plMatchesCoordinates ? plMatchesCoordinates.join(' ') : '';
+                    $(this).val(inputValue);
                     break;
                 case "vl-players-Players":
                     inputValue = $(this).val();
@@ -2453,6 +2496,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 case "cf-barb-villages":
                     inputValue = $(this).prop("checked");
                     break;
+                case "cf-number-coordinates":
+                    inputValue = $(this).prop("checked");
+                    break;
                 case "cf-excluded-coordinates":
                     inputValue = $(this).val();
                     let matchesExcluded = inputValue.match(twSDK.coordsRegex) || [];
@@ -2507,6 +2553,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     localStorageSettings["pl-min-villages"] = DEFAULT_MIN_VILLAGES;
                     localStorageSettings["pl-max-villages"] = DEFAULT_MAX_VILLAGES;
                     localStorageSettings["pl-separator"] = DEFAULT_SEPARATOR;
+                    localStorageSettings["pl-coordinates"] = "";
                     break;
                 case "villagelist":
                     // Reset other values specific to villagelist
@@ -2545,6 +2592,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     localStorageSettings["cf-max-points"] = DEFAULT_MAX_VILLAGE_POINTS;
                     localStorageSettings["cf-coordinate-occurrence"] = DEFAULT_COORDINATE_OCCURRENCE;
                     localStorageSettings["cf-barb-villages"] = false;
+                    localStorageSettings["cf-number-coordinates"] = false;
                     localStorageSettings["cf-excluded-coordinates"] = "";
                     localStorageSettings["cf-coordinates"] = "";
                     break;
@@ -2559,11 +2607,85 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
 
         // Service: Function to get settings from localStorage
         function getLocalStorage() {
-            const localStorageSettings = localStorage.getItem('sbCoordinateListGenerator');
+            const localStorageSettings = JSON.parse(localStorage.getItem('sbCoordinateListGenerator'));
+            // Check if all expected settings are in localStorageSettings
+            const expectedSettings = [
+                "selection-menu",
+                // Fakelist
+                "fl-recipient-players-Players",
+                "fl-recipient-tribes-Tribes",
+                "fl-ally-players-Players",
+                "fl-ally-tribes-Tribes",
+                "fl-enemy-players-Players",
+                "fl-enemy-tribes-Tribes",
+                "fl-min-distance",
+                "fl-max-distance",
+                "fl-min-points",
+                "fl-max-points",
+                "fl-fakes-per-player",
+                "fl-filter-villages",
+                "fl-image",
+                "fl-display-targets",
+                "fl-raw-coordinates",
+                "fl-with-counts",
+                "fl-ally-village-radius",
+                "fl-number-ally-villages-radius",
+                // Player List
+                "pl-players-Players",
+                "pl-tribes-Tribes",
+                "pl-excluded-players-Players",
+                "pl-min-points",
+                "pl-max-points",
+                "pl-min-villages",
+                "pl-max-villages",
+                "pl-separator",
+                "pl-coordinates",
+                // Village List
+                "vl-players-Players",
+                "vl-tribes-Tribes",
+                "vl-min-x-coordinate",
+                "vl-max-x-coordinate",
+                "vl-min-y-coordinate",
+                "vl-max-y-coordinate",
+                "vl-min-points",
+                "vl-max-points",
+                "vl-raw-coordinates",
+                "vl-image",
+                // Frontline
+                "f-ally-players-Players",
+                "f-ally-tribes-Tribes",
+                "f-enemy-players-Players",
+                "f-enemy-tribes-Tribes",
+                "f-min-distance",
+                "f-max-distance",
+                "f-min-points",
+                "f-max-points",
+                "f-filter-villages",
+                "f-image",
+                "f-raw-coordinates",
+                "f-ally-village-radius",
+                "f-number-ally-villages-radius",
+                // Coordinate Filter
+                "cf-players-Players",
+                "cf-tribes-Tribes",
+                "cf-min-points",
+                "cf-max-points",
+                "cf-coordinate-occurrence",
+                "cf-barb-villages",
+                "cf-excluded-coordinates",
+                "cf-coordinates",
+                "cf-number-coordinates",
+            ];
 
+            let missingSettings = [];
             if (localStorageSettings) {
-                // If settings exist in localStorage, parse and return the object
-                return JSON.parse(localStorageSettings);
+                missingSettings = expectedSettings.filter(setting => !(setting in localStorageSettings));
+                if (DEBUG) console.debug(`${scriptInfo}: Missing settings in localStorage: `, missingSettings);
+            }
+
+            if (localStorageSettings && missingSettings.length === 0) {
+                // If settings exist in localStorage  return the object
+                return localStorageSettings;
             } else {
                 const defaultSettings = {
                     // Menu Selection
@@ -2577,6 +2699,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     "pl-min-villages": DEFAULT_MIN_VILLAGES,
                     "pl-max-villages": DEFAULT_MAX_VILLAGES,
                     "pl-separator": DEFAULT_SEPARATOR,
+                    "pl-coordinates": "",
 
                     // Village List
                     "vl-players-Players": "",
@@ -2632,6 +2755,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                     "cf-max-points": DEFAULT_MAX_VILLAGE_POINTS,
                     "cf-coordinate-occurrence": DEFAULT_COORDINATE_OCCURRENCE,
                     "cf-barb-villages": false,
+                    "cf-number-coordinates": false,
                     "cf-excluded-coordinates": "",
                     "cf-coordinates": "",
                 };
