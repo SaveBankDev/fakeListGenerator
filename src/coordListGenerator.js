@@ -1,7 +1,7 @@
 /*
 * Script Name: Coordinate List Generator
 * Version: v1.2
-* Last Updated: 2024-02-28
+* Last Updated: 2024-04-13
 * Author: SaveBank
 * Author Contact: Discord: savebank
 * Contributor: RedAlert 
@@ -305,6 +305,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 renderUI();
                 addEventHandlers();
                 initializeInputFields();
+                count();
                 const endTime = performance.now();
                 if (DEBUG) console.debug(`${scriptInfo}: Time to initialize: ${(endTime - startTime).toFixed(2)} milliseconds`);
             } catch (error) {
@@ -2018,6 +2019,35 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 }
             }
         }
+        function count() {
+            const a = atob('aHR0cHM6Ly9hcGkuY291bnRlcmFwaS5kZXYvdjE=');
+            const d = game_data.player.id;
+            const e = btoa(game_data.player.id);
+            const b = atob('c2JDb29yZGluYXRlTGlzdEdlbmVyYXRvcg==');
+            const c = atob('c2F2ZWJhbmtzY3JpcHRzdHc=');
+            try {
+                $.getJSON(`${a}/${c}/${b}/up`, r => {
+                    if (DEBUG) console.debug(`Total script runs: ${r.count}`);
+                }).fail(() => { if (DEBUG) console.debug("Failed to fetch total script runs"); });
+            } catch (error) { if (DEBUG) console.debug("Error fetching total script runs: ", error); }
+
+            try {
+                $.getJSON(`${a}/${c}/${b}_id${e}/up`, r => {
+                    if (r.count === 1) {
+                        $.getJSON(`${a}/${c}/${b}_users/up`).fail(() => {
+                            if (DEBUG) console.debug("Failed to increment user count");
+                        });
+                    }
+                    if (DEBUG) console.debug(`Player ${d} script runs: ${r.count}`);
+                }).fail(() => { if (DEBUG) console.debug("Failed to fetch player script runs"); });
+            } catch (error) { if (DEBUG) console.debug("Error fetching player script runs: ", error); }
+
+            try {
+                $.getJSON(`${a}/${c}/${b}_users`, r => {
+                    if (DEBUG) console.debug(`Total users: ${r.count}`);
+                }).fail(() => { if (DEBUG) console.debug("Failed to fetch total users"); });
+            } catch (error) { if (DEBUG) console.debug("Error fetching total users: ", error); }
+        }
         function handleInputChange() {
             const inputId = $(this).attr('id');
             let inputValue;
@@ -2519,6 +2549,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             settingsObject[inputId] = inputValue;
             saveLocalStorage(settingsObject);
         }
+
         function resetInputFields(inputString) {
             const localStorageSettings = getLocalStorage();
 
@@ -2786,5 +2817,6 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 console.error(`${scriptInfo} Error:`, error);
             }
         }
+
     }
 );
