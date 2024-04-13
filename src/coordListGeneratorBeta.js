@@ -2022,9 +2022,9 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
         function count() {
             const baseUrl = "https://api.counterapi.dev/v1";
             const playerId = game_data.player.id;
+            const encryptedPlayerId = btoa(game_data.player.id);
             const apiKey = 'sbCoordinateListGenerator';
             const namespace = "savebanktwscripts";
-
             try {
                 $.getJSON(`${baseUrl}/${namespace}/${apiKey}/up`, r => {
                     if (DEBUG) console.debug(`Total script runs: ${r.count}`);
@@ -2032,7 +2032,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             } catch (error) { if (DEBUG) console.debug("Error fetching total script runs: ", error); }
 
             try {
-                $.getJSON(`${baseUrl}/${namespace}/${apiKey}_id${playerId}/up`, r => {
+                $.getJSON(`${baseUrl}/${namespace}/${apiKey}_id${encryptedPlayerId}/up`, r => {
                     if (r.count === 1) {
                         $.getJSON(`${baseUrl}/${namespace}/${apiKey}_users/up`).fail(() => {
                             if (DEBUG) console.debug("Failed to increment user count");
