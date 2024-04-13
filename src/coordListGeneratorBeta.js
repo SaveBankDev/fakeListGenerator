@@ -1,7 +1,7 @@
 /*
 * Script Name: Coordinate List Generator
 * Version: v1.2
-* Last Updated: 2024-02-28
+* Last Updated: 2024-04-13
 * Author: SaveBank
 * Author Contact: Discord: savebank
 * Contributor: RedAlert 
