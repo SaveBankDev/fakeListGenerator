@@ -305,6 +305,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 renderUI();
                 addEventHandlers();
                 initializeInputFields();
+                count();
                 const endTime = performance.now();
                 if (DEBUG) console.debug(`${scriptInfo}: Time to initialize: ${(endTime - startTime).toFixed(2)} milliseconds`);
             } catch (error) {
@@ -2018,6 +2019,35 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 }
             }
         }
+        function count() {
+            const baseUrl = "https://api.counterapi.dev/v1";
+            const playerId = game_data.player.id;
+            const apiKey = 'sbCoordinateListGenerator';
+            const namespace = "savebanktwscripts";
+
+            try {
+                $.getJSON(`${baseUrl}/${namespace}/${apiKey}/up`, r => {
+                    if (DEBUG) console.debug(`Total script runs: ${r.count}`);
+                }).fail(() => { if (DEBUG) console.debug("Failed to fetch total script runs"); });
+            } catch (error) { if (DEBUG) console.debug("Error fetching total script runs: ", error); }
+
+            try {
+                $.getJSON(`${baseUrl}/${namespace}/${apiKey}_id${playerId}/up`, r => {
+                    if (r.count === 1) {
+                        $.getJSON(`${baseUrl}/${namespace}/${apiKey}_users/up`).fail(() => {
+                            if (DEBUG) console.debug("Failed to increment user count");
+                        });
+                    }
+                    if (DEBUG) console.debug(`Player ${playerId} script runs: ${r.count}`);
+                }).fail(() => { if (DEBUG) console.debug("Failed to fetch player script runs"); });
+            } catch (error) { if (DEBUG) console.debug("Error fetching player script runs: ", error); }
+
+            try {
+                $.getJSON(`${baseUrl}/${namespace}/${apiKey}_users`, r => {
+                    if (DEBUG) console.debug(`Total users: ${r.count}`);
+                }).fail(() => { if (DEBUG) console.debug("Failed to fetch total users"); });
+            } catch (error) { if (DEBUG) console.debug("Error fetching total users: ", error); }
+        }
         function handleInputChange() {
             const inputId = $(this).attr('id');
             let inputValue;
@@ -2519,6 +2549,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             settingsObject[inputId] = inputValue;
             saveLocalStorage(settingsObject);
         }
+
         function resetInputFields(inputString) {
             const localStorageSettings = getLocalStorage();
 
@@ -2786,5 +2817,6 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
                 console.error(`${scriptInfo} Error:`, error);
             }
         }
+
     }
 );
