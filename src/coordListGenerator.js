@@ -15,7 +15,7 @@
 if (typeof DEBUG !== 'boolean') DEBUG = false;
 
 // CONSTANTS
-var allIds = [
+var allIdsCLG = [
     // Player List
     "pl-players-Players",
     "pl-tribes-Tribes",
@@ -412,7 +412,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             });
 
             $(document).ready(function () {
-                allIds.forEach(function (id) {
+                allIdsCLG.forEach(function (id) {
                     $('#' + id).on('change', handleInputChange);
                 });
             });
