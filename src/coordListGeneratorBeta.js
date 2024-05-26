@@ -1,7 +1,7 @@
 /*
 * Script Name: Coordinate List Generator
-* Version: v1.2
-* Last Updated: 2024-04-13
+* Version: v1.2.1
+* Last Updated: 2024-05-26
 * Author: SaveBank
 * Author Contact: Discord: savebank
 * Contributor: RedAlert 
@@ -15,7 +15,7 @@
 if (typeof DEBUG !== 'boolean') DEBUG = false;
 
 // CONSTANTS
-var allIds = [
+var allIdsCLG = [
     // Player List
     "pl-players-Players",
     "pl-tribes-Tribes",
@@ -118,7 +118,7 @@ var scriptConfig = {
     scriptData: {
         prefix: 'sbCLG',
         name: 'Coordinate List Generator',
-        version: 'v1.2',
+        version: 'v1.2.1',
         author: 'SaveBank',
         authorUrl: 'https://forum.tribalwars.net/index.php?members/savebank.131111/',
         helpLink: 'https://forum.tribalwars.net/index.php?threads/coordinate-list-generator.292006/',
@@ -273,7 +273,7 @@ var scriptConfig = {
 
 
 
-$.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript.src}`,
+$.getScript(`https://cdn.jsdelivr.net/gh/SaveBankDev/Tribal-Wars-Scripts-SDK@main/twSDK.js`,
     async function () {
         const startTime = performance.now();
         if (DEBUG) {
@@ -412,7 +412,7 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             });
 
             $(document).ready(function () {
-                allIds.forEach(function (id) {
+                allIdsCLG.forEach(function (id) {
                     $('#' + id).on('change', handleInputChange);
                 });
             });
@@ -2020,31 +2020,31 @@ $.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript
             }
         }
         function count() {
-            const a = atob('aHR0cHM6Ly9hcGkuY291bnRlcmFwaS5kZXYvdjE=');
-            const d = game_data.player.id;
-            const e = btoa(game_data.player.id);
-            const b = atob('c2JDb29yZGluYXRlTGlzdEdlbmVyYXRvcg==');
-            const c = atob('c2F2ZWJhbmtzY3JpcHRzdHc=');
+            const apiUrl = 'https://api.counterapi.dev/v1';
+            const playerId = game_data.player.id;
+            const encodedPlayerId = btoa(game_data.player.id);
+            const apiKey = 'sbCoordinateListGenerator'; // api key
+            const namespace = 'savebankscriptstw'; // namespace
             try {
-                $.getJSON(`${a}/${c}/${b}/up`, r => {
-                    if (DEBUG) console.debug(`Total script runs: ${r.count}`);
+                $.getJSON(`${apiUrl}/${namespace}/${apiKey}/up`, response => {
+                    if (DEBUG) console.debug(`Total script runs: ${response.count}`);
                 }).fail(() => { if (DEBUG) console.debug("Failed to fetch total script runs"); });
             } catch (error) { if (DEBUG) console.debug("Error fetching total script runs: ", error); }
 
             try {
-                $.getJSON(`${a}/${c}/${b}_id${e}/up`, r => {
-                    if (r.count === 1) {
-                        $.getJSON(`${a}/${c}/${b}_users/up`).fail(() => {
+                $.getJSON(`${apiUrl}/${namespace}/${apiKey}_id${encodedPlayerId}/up`, response => {
+                    if (response.count === 1) {
+                        $.getJSON(`${apiUrl}/${namespace}/${apiKey}_users/up`).fail(() => {
                             if (DEBUG) console.debug("Failed to increment user count");
                         });
                     }
-                    if (DEBUG) console.debug(`Player ${d} script runs: ${r.count}`);
+                    if (DEBUG) console.debug(`Player ${playerId} script runs: ${response.count}`);
                 }).fail(() => { if (DEBUG) console.debug("Failed to fetch player script runs"); });
             } catch (error) { if (DEBUG) console.debug("Error fetching player script runs: ", error); }
 
             try {
-                $.getJSON(`${a}/${c}/${b}_users`, r => {
-                    if (DEBUG) console.debug(`Total users: ${r.count}`);
+                $.getJSON(`${apiUrl}/${namespace}/${apiKey}_users`, response => {
+                    if (DEBUG) console.debug(`Total users: ${response.count}`);
                 }).fail(() => { if (DEBUG) console.debug("Failed to fetch total users"); });
             } catch (error) { if (DEBUG) console.debug("Error fetching total users: ", error); }
         }
