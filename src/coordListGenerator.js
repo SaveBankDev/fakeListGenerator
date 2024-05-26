@@ -1,7 +1,7 @@
 /*
 * Script Name: Coordinate List Generator
-* Version: v1.2
-* Last Updated: 2024-04-13
+* Version: v1.2.1
+* Last Updated: 2024-05-26
 * Author: SaveBank
 * Author Contact: Discord: savebank
 * Contributor: RedAlert 
@@ -118,7 +118,7 @@ var scriptConfig = {
     scriptData: {
         prefix: 'sbCLG',
         name: 'Coordinate List Generator',
-        version: 'v1.2',
+        version: 'v1.2.1',
         author: 'SaveBank',
         authorUrl: 'https://forum.tribalwars.net/index.php?members/savebank.131111/',
         helpLink: 'https://forum.tribalwars.net/index.php?threads/coordinate-list-generator.292006/',
@@ -273,7 +273,7 @@ var scriptConfig = {
 
 
 
-$.getScript(`https://twscripts.dev/scripts/twSDK.js?url=${document.currentScript.src}`,
+$.getScript(`https://cdn.jsdelivr.net/gh/SaveBankDev/Tribal-Wars-Scripts-SDK@main/twSDK.js`,
     async function () {
         const startTime = performance.now();
         if (DEBUG) {
