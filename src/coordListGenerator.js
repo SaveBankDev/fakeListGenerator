@@ -823,9 +823,7 @@ $.getScript(`https://cdn.jsdelivr.net/gh/SaveBankDev/Tribal-Wars-Scripts-SDK@mai
 
             // Ally coordinates
             let allyCoordinates = villages
-                .filter(village => finalAllyPlayerIds.includes(village[4]) &&
-                    village[5] >= minPoints &&
-                    village[5] <= maxPoints)
+                .filter(village => finalAllyPlayerIds.includes(village[4]))
                 .map(village => [village[2], village[3]]);
 
             if (DEBUG) console.debug(`${scriptInfo}: Ally Coordinates found in calculateFrontline(): `, allyCoordinates);
