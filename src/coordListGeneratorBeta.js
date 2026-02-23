@@ -84,6 +84,7 @@ var allIdsCLG = [
     "cf-excluded-coordinates",
     "cf-coordinates",
     "cf-number-coordinates",
+    "cf-group-by-amount",
 
 ];
 var buttonIDs = [
@@ -191,6 +192,7 @@ var scriptConfig = {
             'Enter coordinates you want to remove...': 'Enter coordinates you want to remove...',
             'Enter coordinates...': 'Enter coordinates...',
             'Number Coordinates?': 'Number Coordinates?',
+            'Group by amount?': 'Group by amount?',
         },
         de_DE: {
             'Redirecting...': 'Weiterleiten...',
@@ -259,6 +261,7 @@ var scriptConfig = {
             'Enter coordinates you want to remove...': 'Zu entfernende Koordinaten eingeben...',
             'Enter coordinates...': 'Koordinaten eingeben...',
             'Number Coordinates?': 'Koordinaten nummerieren?',
+            'Group by amount?': 'Nach Anzahl gruppieren?',
         }
     }
     ,
@@ -1121,6 +1124,7 @@ $.getScript(`https://cdn.jsdelivr.net/gh/SaveBankDev/Tribal-Wars-Scripts-SDK@mai
             let numberedBool = parseBool(localStorageSettings["cf-number-coordinates"]);
             let excludedCoordinates = localStorageSettings["cf-excluded-coordinates"];
             let coordinates = localStorageSettings["cf-coordinates"];
+            let groupByAmount = parseBool(localStorageSettings["cf-group-by-amount"]);
 
             tribeInput = tribeInput.filter(item => item);
             playerInput = playerInput.filter(item => item);
@@ -1205,13 +1209,41 @@ $.getScript(`https://cdn.jsdelivr.net/gh/SaveBankDev/Tribal-Wars-Scripts-SDK@mai
             if (DEBUG) console.debug(`${scriptInfo}: Result Coordinates found in filterCoordinates(): `, coordinateVillages);
 
             let output = "";
-            if (numberedBool) {
-                coordinateVillages.forEach((coord, index) => {
-                    output += `${index + 1}. ${coord}\n`;
+            let groupedCoordinates = {};
+
+            if (groupByAmount) {
+                // Group coordinates by their occurrence
+                coordinateVillages.forEach(coord => {
+                    groupedCoordinates[coord] = (groupedCoordinates[coord] || 0) + 1;
+                });
+
+                // Get unique amounts
+                let uniqueAmounts = [...new Set(Object.values(groupedCoordinates))].sort((a, b) => a - b);
+                let counter = 1;
+                // Format the output
+                uniqueAmounts.forEach(amount => {
+                    output += `[spoiler=${amount}]\n`; // Add spoiler tag with amount as the name
+                    for (let coord in groupedCoordinates) {
+                        if (groupedCoordinates[coord] === amount) {
+                            if (numberedBool) {
+                                output += `${counter}. ${coord}\n`;
+                            } else {
+                                output += `${coord} `;
+                            }
+                            counter++;
+                        }
+                    }
+                    output += `[/spoiler]\n`; // Close spoiler tag
                 });
             } else {
-                for (let coordinate of coordinateVillages) {
-                    output += `${coordinate} `;
+                if (numberedBool) {
+                    coordinateVillages.forEach((coord, index) => {
+                        output += `${index + 1}. ${coord}\n`;
+                    });
+                } else {
+                    for (let coordinate of coordinateVillages) {
+                        output += `${coordinate} `;
+                    }
                 }
             }
 
@@ -1648,6 +1680,10 @@ $.getScript(`https://cdn.jsdelivr.net/gh/SaveBankDev/Tribal-Wars-Scripts-SDK@mai
                     <legend>${twSDK.tt('Number Coordinates?')}</legend>
                     <input type="checkbox" id="cf-number-coordinates"/>
                  </fieldset>
+                 <fieldset>
+                    <legend>${twSDK.tt('Group by amount?')}</legend>
+                    <input type="checkbox" id="cf-group-by-amount"/>
+                </fieldset>
             </div>
             <div class="ra-mb10" class="coordinate-input">
                 <fieldset>
@@ -2529,6 +2565,9 @@ $.getScript(`https://cdn.jsdelivr.net/gh/SaveBankDev/Tribal-Wars-Scripts-SDK@mai
                 case "cf-number-coordinates":
                     inputValue = $(this).prop("checked");
                     break;
+                case "cf-group-by-amount":
+                    inputValue = $(this).prop("checked");
+                    break;
                 case "cf-excluded-coordinates":
                     inputValue = $(this).val();
                     let matchesExcluded = inputValue.match(twSDK.coordsRegex) || [];
@@ -2624,6 +2663,7 @@ $.getScript(`https://cdn.jsdelivr.net/gh/SaveBankDev/Tribal-Wars-Scripts-SDK@mai
                     localStorageSettings["cf-coordinate-occurrence"] = DEFAULT_COORDINATE_OCCURRENCE;
                     localStorageSettings["cf-barb-villages"] = false;
                     localStorageSettings["cf-number-coordinates"] = false;
+                    localStorageSettings["cf-group-by-amount"] = false;
                     localStorageSettings["cf-excluded-coordinates"] = "";
                     localStorageSettings["cf-coordinates"] = "";
                     break;
@@ -2706,6 +2746,7 @@ $.getScript(`https://cdn.jsdelivr.net/gh/SaveBankDev/Tribal-Wars-Scripts-SDK@mai
                 "cf-excluded-coordinates",
                 "cf-coordinates",
                 "cf-number-coordinates",
+                "cf-group-by-amount",
             ];
 
             let missingSettings = [];
@@ -2787,6 +2828,7 @@ $.getScript(`https://cdn.jsdelivr.net/gh/SaveBankDev/Tribal-Wars-Scripts-SDK@mai
                     "cf-coordinate-occurrence": DEFAULT_COORDINATE_OCCURRENCE,
                     "cf-barb-villages": false,
                     "cf-number-coordinates": false,
+                    "cf-group-by-amount": false,
                     "cf-excluded-coordinates": "",
                     "cf-coordinates": "",
                 };
